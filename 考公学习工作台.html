@@ -765,6 +765,17 @@ function viewPoints(){
     <label>配图（题目截图，可选）</label>
     <input type="file" id="pointImg" accept="image/*">
     <button class="btn" style="margin-top:8px;" onclick="addPoint()">+ 保存考点</button>
+    <button class="btn ghost" style="margin-top:8px;margin-left:8px;" onclick="toggleBatch()">📥 批量导入</button>
+    <div id="pointBatch" style="display:none;margin-top:10px;padding:10px;background:#FFF6FA;border-radius:12px;border:1px dashed #FFC2DD;">
+      <div style="font-size:12px;color:#a35;line-height:1.6;">从粉笔错题本复制后粘贴到这里，每行一条。格式：<b>模块|内容</b>（模块可省略，默认用上方所选模块）。例：<br>言语理解|细节题偷换概念<br>资料分析|截位直除单位换算（万/亿）出错</div>
+      <textarea id="batchText" rows="6" style="width:100%;margin-top:8px;border-radius:10px;border:1px solid #FFD3E6;padding:8px;font-size:13px;" placeholder="言语理解|……
+资料分析|……
+（每行一条）"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn" style="flex:1" onclick="batchImportPoints()">📥 导入</button>
+        <button class="btn ghost" style="flex:1" onclick="toggleBatch()">收起</button>
+      </div>
+    </div>
     <h3>📚 全部考点</h3>
     <div id="pointAll"></div></div>`;
   setTimeout(renderPoints,30);
@@ -794,6 +805,25 @@ function markPoint(id,type){
   toast(type==='mastered'?'已掌握，太棒了！🎉':'复习已记录，明天继续 💪');
 }
 function delPoint(id){ state.points=state.points.filter(p=>p.id!==id); save(); renderPoints(); }
+function toggleBatch(){ const b=document.getElementById('pointBatch'); if(b) b.style.display = b.style.display==='none'?'block':'none'; }
+function batchImportPoints(){
+  const ta=document.getElementById('batchText');
+  const lines=(ta.value||'').split(/\n/).map(s=>s.trim()).filter(Boolean);
+  if(!lines.length){ toast('请先粘贴要导入的考点'); return; }
+  const defMod=document.getElementById('pointMod').value;
+  const known=new Set(MODULES.slice(1,8));
+  let added=0;
+  lines.forEach(line=>{
+    let mod=defMod, text=line;
+    const m=line.match(/^(.+?)[｜|：:]\s*(.+)$/);
+    if(m){ const cand=m[1].trim(); if(known.has(cand)){ mod=cand; text=m[2].trim(); } }
+    if(!text)return;
+    state.points.unshift({id:'p'+Date.now()+Math.random().toString(36).slice(2,7),mod,text,img:null,created:todayKey(),reviews:[],mastered:false});
+    added++;
+  });
+  save(); ta.value=''; renderPoints();
+  toast('已批量导入 '+added+' 个考点 📥');
+}
 function renderPoints(){
   const all=state.points||[];
   const dueBox=document.getElementById('pointToday');

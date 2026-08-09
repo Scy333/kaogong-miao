@@ -277,6 +277,39 @@ function loadState(){
   return s;
 }
 function save(){ _lsSet(LS,JSON.stringify(state)); }
+
+/* ============ 数据备份（导出/导入） ============ */
+function exportData(){
+  try{
+    const data=_lsGet(LS)||'{}';
+    const blob=new Blob([data],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download='考公学习工作台_备份_'+todayKey()+'.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),500);
+    alert('✅ 已导出备份文件。请保存到备忘录 / 微信 / 云盘，换设备或清缓存后「导入备份」即可恢复数据。');
+  }catch(e){ alert('导出失败：'+(e&&e.message||e)); }
+}
+function importData(){ const inp=document.getElementById('importFile'); if(inp) inp.click(); }
+function onImportFile(e){
+  const file=e.target.files&&e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(){
+    try{
+      const txt=String(reader.result||'');
+      const obj=JSON.parse(txt);
+      if(typeof obj!=='object'||obj===null) throw new Error('文件格式不正确');
+      _lsSet(LS,txt);
+      state=loadState();
+      try{ renderView(0); }catch(_){}
+      try{ renderHomeCat(); renderHomePlan(); renderHomeWeak(); }catch(_){}
+      alert('✅ 备份已导入，学习数据恢复成功！');
+    }catch(err){ alert('导入失败：'+(err&&err.message||err)); }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
 function defaultFormulas(){
   return {
     '资料分析':[
@@ -430,7 +463,12 @@ function viewCountdown(){
   for(const name of Object.keys(state.examDates)){
     h+=`<label>${name}</label><input type="date" value="${state.examDates[name]}" onchange="setExam('${name}',this.value)">`;
   }
-  h+='<p style="font-size:12px;color:var(--txt-l);margin-top:10px;">数据保存在本机，换设备需重新设置。</p></div>';
+  h+='<p style="font-size:12px;color:var(--txt-l);margin-top:10px;">数据保存在本机，换设备需重新设置。</p>'
+    +'<div class="row" style="margin-top:10px;gap:8px;">'
+    +'<button class="btn ghost" style="flex:1" onclick="exportData()">⬇ 导出备份</button>'
+    +'<button class="btn ghost" style="flex:1" onclick="importData()">⬆ 导入备份</button></div>'
+    +'<input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="onImportFile(event)">'
+    +'</div>';
   setTimeout(renderOverviewMods,30);
   setTimeout(()=>{ renderHomeCat(); renderHomePlan(); renderHomeWeak(); },30);
   return h;

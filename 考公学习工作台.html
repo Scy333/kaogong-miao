@@ -239,6 +239,11 @@ body{ overscroll-behavior:none; -webkit-user-select:none; user-select:none; }
 .lv-mid{ border-left:4px solid #FFA43C; } .lv-mid .ai-lv{ background:#FFA43C; }
 .lv-good{ border-left:4px solid #4CB96A; } .lv-good .ai-lv{ background:#4CB96A; }
 
+/* 断签保护：连续打卡 / 逾期 / 顺延 */
+.streak-badge{ display:inline-block; font-size:12px; color:var(--pink-d); background:#FFF0F5; border:1px solid #FFD3E6; border-radius:12px; padding:4px 10px; margin-left:8px; }
+.overdue-tip{ background:#FFF3E0; color:#C7701A; border:1px solid #FFD9A8; border-radius:10px; padding:8px 10px; font-size:12.5px; margin-bottom:10px; line-height:1.5; }
+.roll-box{ margin-top:10px; padding-top:8px; border-top:1px dashed #FFC2DD; }
+.roll-title{ font-size:12px; color:#FF8AA8; margin-bottom:4px; }
 </style>
 </head>
 <body>
@@ -257,6 +262,7 @@ body{ overscroll-behavior:none; -webkit-user-select:none; user-select:none; }
     </div>
     <div class="quote" id="quote">加载中…</div>
     <button class="checkin-btn" id="checkinBtn" onclick="doCheckin()">✓ 今日打卡</button>
+    <span class="streak-badge" id="streakBadge"></span>
   </div>
   <div id="view"></div>
 </main>
@@ -313,6 +319,8 @@ function loadState(){
   s.examDates=s.examDates||{ '国考':'2026-11-28','省考':'2027-03-28','事业编联考':'2026-10-25' };
   s.essayQuotes=s.essayQuotes||{};
   s.cat=s.cat||{food:0,mood:0,grow:0,day:''};
+  s.roll=s.roll||[];            // 自动顺延的未完成任务
+  s.lastRollDay=s.lastRollDay||'';
   return s;
 }
 function save(){ _lsSet(LS,JSON.stringify(state)); }
@@ -455,11 +463,22 @@ function renderTop(){
   const btn=document.getElementById('checkinBtn');
   if(state.checkin[todayKey()]){ btn.disabled=true; btn.textContent='✓ 今日已打卡'; }
   else { btn.disabled=false; btn.textContent='✓ 今日打卡'; }
+  const sb=document.getElementById('streakBadge');
+  if(sb){ const s=streakDays(); sb.textContent = s>0 ? ('🔥 连续 '+s+' 天') : '☘️ 今天开始打卡吧'; }
+}
+function streakDays(){
+  let s=0; const d=new Date();
+  if(!state.checkin[todayKey()]) d.setDate(d.getDate()-1); // 今天还没打卡则从昨天往前数
+  while(true){ const k=d.toISOString().slice(0,10); if(state.checkin[k]){ s++; d.setDate(d.getDate()-1); } else break; }
+  return s;
 }
 function doCheckin(){
   if(state.checkin[todayKey()]){ toast('今天已经打卡啦~'); return; }
+  const y=new Date(); y.setDate(y.getDate()-1); const yk=y.toISOString().slice(0,10);
+  const broken=!state.checkin[yk];
   state.checkin[todayKey()]=true; save(); renderTop();
-  toast('🎉 打卡成功！今天也要加油哦');
+  const s=streakDays();
+  toast(broken ? ('🔥 中断后重新连击！当前连续 '+s+' 天') : ('🎉 打卡成功！连续 '+s+' 天，继续加油'));
 }
 
 /* ============ 主视图路由 ============ */
@@ -732,11 +751,24 @@ function viewCalendar(){
       <div style="flex:1;"><label>结束学习时间</label><input type="time" value="${state.calendar.end}" onchange="setCal('end',this.value)"></div>
     </div>
     <h3>📆 每日打卡记录</h3><div id="calGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px;"></div>
-    <p style="font-size:12px;color:var(--txt-l);margin-top:10px;">🟢 已打卡 · ⚪ 未打卡。打卡功能在顶部「今日打卡」按钮（每天限一次）。</p></div>`;
+    <p style="font-size:12px;color:var(--txt-l);margin-top:10px;">🟢 已打卡 · ⚪ 未打卡。打卡功能在顶部「今日打卡」按钮（每天限一次）。</p>
+    <h3>📝 补卡（补回漏掉的日子）</h3>
+    <div class="row"><input type="date" id="makeupDate" max="${todayKey()}"><button class="btn" onclick="doMakeup()">补打</button></div>
+    <p style="font-size:12px;color:#bbb;margin-top:6px;">只能补过去的日期，不能补今天（今天用顶部「今日打卡」），也不能补未来。</p></div>`;
   setTimeout(()=>{ const g=document.getElementById('calGrid'); if(g){ const keys=Object.keys(state.checkin).sort().reverse(); g.innerHTML=keys.map(k=>`<div style="background:${state.checkin[k]?'#C8F0D0':'#eee'};border-radius:10px;padding:6px 4px;text-align:center;font-size:11px;color:#555;">${k.slice(5)}<br>${state.checkin[k]?'🟢':'⚪'}</div>`).join('')||'<div style="font-size:12px;color:#bbb;">还没有打卡记录</div>'; } },30);
   return h;
 }
 function setCal(k,v){ state.calendar[k]=v; save(); toast('已保存'); }
+function doMakeup(){
+  const d=document.getElementById('makeupDate'); if(!d||!d.value){ toast('请先选择要补的日期'); return; }
+  const v=d.value;
+  if(v>=todayKey()){ toast('只能补过去的日期哦（今天用顶部「今日打卡」）'); return; }
+  if(state.checkin[v]){ toast('这一天已经打过卡啦~'); return; }
+  state.checkin[v]=true; save();
+  const g=document.getElementById('calGrid'); if(g){ const keys=Object.keys(state.checkin).sort().reverse(); g.innerHTML=keys.map(k=>`<div style="background:${state.checkin[k]?'#C8F0D0':'#eee'};border-radius:10px;padding:6px 4px;text-align:center;font-size:11px;color:#555;">${k.slice(5)}<br>${state.checkin[k]?'🟢':'⚪'}</div>`).join(''); }
+  renderTop();
+  toast('已补卡 ✅ 连续打卡 '+streakDays()+' 天');
+}
 
 /* ===== 易错考点（艾宾浩斯复习排程） ===== */
 const REVIEW_INTERVALS=[1,2,4,7,15,30];   // 艾宾浩斯复习间隔(天)
@@ -753,12 +785,14 @@ function reviewProgress(p){ return Math.min(p.reviews.length,REVIEW_INTERVALS.le
 function viewPoints(){
   const all=state.points||[];
   const due=todayReviewCount();
+  const overdue=(all.filter(p=>!p.mastered && isDue(p) && nextReviewDate(p)<todayKey())).length;
   let h=`<div class="card"><h2>🎯 易错考点</h2>
     <div class="point-stat">
       <div class="ps-box"><div class="n">${due}</div><div class="l">今日需复习</div></div>
       <div class="ps-box"><div class="n">${all.length}</div><div class="l">考点总数</div></div>
       <div class="ps-box"><div class="n">${all.filter(p=>p.mastered).length}</div><div class="l">已掌握</div></div>
     </div>
+    ${overdue?`<div class="overdue-tip">⚠️ 有 ${overdue} 个考点已逾期（超过计划复习日），建议优先补复习</div>`:''}
     <h3>📌 今日需复习（艾宾浩斯智能排程）</h3>
     <div id="pointToday"></div>
     <h3>➕ 导入易错考点</h3>
@@ -882,6 +916,7 @@ function viewStats(){
   let h=`<div class="card"><h2>📈 学习统计</h2>
     <div class="stat-grid">
       <div class="stat-box"><div class="n">${checked}</div><div class="l">累计打卡天数</div></div>
+      <div class="stat-box"><div class="n">${streakDays()}</div><div class="l">🔥 连续打卡</div></div>
       <div class="stat-box"><div class="n">${days}</div><div class="l">学习记录天数</div></div>
       <div class="stat-box"><div class="n">${totalMin}</div><div class="l">累计专注(分钟)</div></div>
       <div class="stat-box"><div class="n">${Math.round(totalMin/60*10)/10}</div><div class="l">累计专注(小时)</div></div>
@@ -1092,7 +1127,9 @@ function feedCat(){
   const {week,day}=wd;
   const tTasks=getDayTasks(week,day); let tDone=0;
   tTasks.forEach((_,i)=>{ if(state['plan_'+week+'-'+day+'-'+i]==='1') tDone++; });
-  if(wd.started && tDone/tTasks.length<0.8){ toast('先完成今日80%任务才能喂猫哦~'); return; }
+  const roll=state.roll||[]; let rDone=0; roll.forEach(r=>{ if(r.done) rDone++; });
+  const total=tTasks.length+roll.length;
+  if(wd.started && total>0 && (tDone+rDone)/total<0.8){ toast('先完成今日80%任务才能喂猫哦~'); return; }
   const fish=document.getElementById('homeFish');
   if(fish){ fish.style.cssText='position:fixed;right:24px;top:50%;font-size:28px;opacity:1;transition:all .8s;z-index:998;'; setTimeout(()=>{ fish.style.right='50%'; fish.style.top='40%'; },10); setTimeout(()=>{ fish.style.opacity='0'; },800); }
   state['fed_'+tk]='1'; state.cat.food=100; state.cat.mood=100; state.cat.grow=(state.cat.grow||0)+2; save();
@@ -1104,7 +1141,24 @@ function feedCat(){
   updatePlanProgress(week,day);
 }
 /* 16周计划 */
+function rollForwardIfNewDay(){
+  const tk=todayKey();
+  if(state.lastRollDay===tk) return;
+  state.lastRollDay=tk; save();
+  const y=new Date(); y.setDate(y.getDate()-1);
+  const diff=Math.floor((y-PLAN_START)/86400000);
+  if(diff>=0){
+    const wk=Math.min(Math.floor(diff/7),15);
+    const dy=((diff%7)+7)%7;
+    getDayTasks(wk,dy).forEach((task,i)=>{
+      const key='plan_'+wk+'-'+dy+'-'+i;
+      if(state[key]!=='1' && !state.roll.some(r=>r.key===key)) state.roll.push({key,text:task,done:false});
+    });
+    save();
+  }
+}
 function renderHomePlan(){
+  rollForwardIfNewDay();
   const {week,day,started}=getWeekDay();
   renderHomeToday(week,day,started);
   renderHomeWeekTabs(week);
@@ -1124,14 +1178,24 @@ function renderHomeToday(week,day,started){
   }
   const w=WEEKS[week]; const tasks=getDayTasks(week,day);
   let done=0; tasks.forEach((_,i)=>{ if(state['plan_'+week+'-'+day+'-'+i]==='1') done++; });
-  const rate=tasks.length?Math.round(done/tasks.length*100):0;
+  const roll=state.roll||[]; let rollDone=0; roll.forEach(r=>{ if(r.done) rollDone++; });
+  const totalTasks=tasks.length+roll.length;
+  const totalDone=done+rollDone;
+  const rate=totalTasks?Math.round(totalDone/totalTasks*100):0;
   let html='<div class="today-head"><span>第'+(week+1)+'周 · '+DAY_NAMES[day]+'</span><span class="today-rate">'+rate+'%</span></div>';
   html+='<div class="today-theme">📌 '+w.theme+'</div>';
   tasks.forEach((task,i)=>{
     const checked=state['plan_'+week+'-'+day+'-'+i]==='1';
     html+='<label class="today-task'+(checked?' done':'')+'"><input type="checkbox" '+(checked?'checked':'')+' onchange="togglePlanTask('+week+','+day+','+i+')"><span>'+task+'</span></label>';
   });
-  if(done<tasks.length) html+='<div class="today-tip">还差 '+(tasks.length-done)+' 项完成，完成80%就能喂团子啦~ 🐟</div>';
+  if(roll.length){
+    html+='<div class="roll-box"><div class="roll-title">📥 顺延自昨日的任务</div>';
+    roll.forEach((r,i)=>{
+      html+='<label class="today-task'+(r.done?' done':'')+'"><input type="checkbox" '+(r.done?'checked':'')+' onchange="toggleRoll('+i+')"><span>'+r.text+'</span></label>';
+    });
+    html+='</div>';
+  }
+  if(totalDone<totalTasks) html+='<div class="today-tip">还差 '+(totalTasks-totalDone)+' 项完成，完成80%就能喂团子啦~ 🐟</div>';
   else html+='<div class="today-tip ok">今日任务全部完成！去喂团子吧 🐟</div>';
   const el=document.getElementById('homeTodayCard'); if(el)el.innerHTML=html;
 }
@@ -1140,6 +1204,13 @@ function togglePlanTask(week,day,i){
   state[k]=state[k]==='1'?'0':'1'; save();
   const d=getWeekDay().day;
   renderHomeToday(week,d); renderHomeWeek(week,d); updatePlanProgress(week,d);
+}
+function toggleRoll(i){
+  const r=state.roll[i]; if(!r)return;
+  r.done=!r.done;
+  if(r.done) state.roll.splice(i,1);   // 完成后移除，保持整洁
+  save();
+  const wd=getWeekDay(); renderHomeToday(wd.week,wd.day,wd.started); renderHomeWeek(wd.week,wd.day); updatePlanProgress(wd.week,wd.day);
 }
 let homeWeek=null;
 function renderHomeWeekTabs(week){
@@ -1172,9 +1243,11 @@ function renderHomeWeek(week,todayDay){
 function updatePlanProgress(week,todayDay){
   const tTasks=getDayTasks(week,todayDay); let tDone=0;
   tTasks.forEach((_,i)=>{ if(state['plan_'+week+'-'+todayDay+'-'+i]==='1') tDone++; });
-  const tRate=tTasks.length?Math.round(tDone/tTasks.length*100):0;
+  const roll=state.roll||[]; let rDone=0; roll.forEach(r=>{ if(r.done) rDone++; });
+  const total=tTasks.length+roll.length;
+  const tRate=total?Math.round((tDone+rDone)/total*100):0;
   const tb=document.getElementById('homeTodayBar'); if(tb){ tb.style.width=tRate+'%'; tb.textContent=tRate+'%'; }
-  const st=document.getElementById('homeStatToday'); if(st)st.textContent=tDone+'/'+tTasks.length;
+  const st=document.getElementById('homeStatToday'); if(st)st.textContent=(tDone+rDone)+'/'+(tTasks.length+roll.length);
   let wTotal=0,wDone=0; for(let d=0;d<7;d++){ const dt=getDayTasks(week,d); wTotal+=dt.length; dt.forEach((_,i)=>{ if(state['plan_'+week+'-'+d+'-'+i]==='1') wDone++; }); }
   const wRate=Math.round(wDone/wTotal*100); const sw=document.getElementById('homeStatWeek'); if(sw)sw.textContent=wRate+'%';
   let allTotal=0,allDone=0; for(let wk=0;wk<16;wk++){ for(let d=0;d<7;d++){ const dt=getDayTasks(wk,d); allTotal+=dt.length; dt.forEach((_,i)=>{ if(state['plan_'+wk+'-'+d+'-'+i]==='1') allDone++; }); } }

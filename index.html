@@ -244,6 +244,16 @@ body{ overscroll-behavior:none; -webkit-user-select:none; user-select:none; }
 .overdue-tip{ background:#FFF3E0; color:#C7701A; border:1px solid #FFD9A8; border-radius:10px; padding:8px 10px; font-size:12.5px; margin-bottom:10px; line-height:1.5; }
 .roll-box{ margin-top:10px; padding-top:8px; border-top:1px dashed #FFC2DD; }
 .roll-title{ font-size:12px; color:#FF8AA8; margin-bottom:4px; }
+
+/* 我的题库：刷题选项 / 解析 */
+.qopt{ display:flex; align-items:flex-start; gap:8px; background:#fff; border:1px solid #FFD3E6; border-radius:12px; padding:10px 12px; margin:8px 0; font-size:14px; cursor:pointer; }
+.qopt .qabc{ flex:none; width:22px; height:22px; border-radius:50%; background:#FFE3EE; color:var(--pink-d); font-size:12px; font-weight:bold; text-align:center; line-height:22px; }
+.qopt.correct{ border-color:#4CB96A; background:#EAF9EE; }
+.qopt.wrong{ border-color:#FF5A7A; background:#FFEEF2; }
+.qopt.disabled{ opacity:.85; cursor:default; }
+.qfb{ font-size:13px; font-weight:bold; margin-top:10px; }
+.qfb.ok{ color:#1a7a3a; } .qfb.err{ color:#E23A5A; }
+.mcq-why{ font-size:12.5px; color:#666; background:#FAF6FB; border-radius:10px; padding:8px 10px; margin-top:6px; line-height:1.6; }
 </style>
 </head>
 <body>
@@ -286,7 +296,7 @@ function dayIndex(){const d=new Date();return Math.floor((d-new Date(d.getFullYe
 
 /* ============ 状态 ============ */
 const LS='kaogong_pro_v2';
-const MODULES=['倒计时','言语理解','资料分析','逻辑判断','政治理论','数量关系','常识判断','申论素材库','打卡日历','易错考点','学习统计'];
+const MODULES=['倒计时','言语理解','资料分析','逻辑判断','政治理论','数量关系','常识判断','申论素材库','打卡日历','易错考点','我的题库','学习统计'];
 const MOD_ICONS={
  '倒计时':'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/><path d="M12 2v2M12 20v2" stroke-linecap="round"/>',
  '言语理解':'<path d="M4 5h16v10H9l-5 5z" stroke-linejoin="round"/><path d="M8 9h8M8 12h5" stroke-linecap="round"/>',
@@ -295,9 +305,10 @@ const MOD_ICONS={
  '政治理论':'<path d="M5 21V4h12l-2 3 2 3H5" stroke-linejoin="round"/>',
  '数量关系':'<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>',
  '常识判断':'<path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.5c.8.8.5 1.8.5 3.5h6c0-1.7-.3-2.7.5-3.5A6 6 0 0012 3z" stroke-linejoin="round"/>',
- '申论':'<path d="M4 20l4-1L19 8l-3-3L5 16z" stroke-linejoin="round"/><path d="M14 6l3 3" stroke-linecap="round"/>',
+ '申论素材库':'<path d="M4 20l4-1L19 8l-3-3L5 16z" stroke-linejoin="round"/><path d="M14 6l3 3" stroke-linecap="round"/>',
  '打卡日历':'<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4" stroke-linecap="round"/>',
- '错题本':'<path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z" stroke-linejoin="round"/><path d="M9 8h7M9 12h7" stroke-linecap="round"/>',
+ '易错考点':'<path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z" stroke-linejoin="round"/><path d="M9 8h7M9 12h7" stroke-linecap="round"/>',
+ '我的题库':'<path d="M5 4h11a2 2 0 012 2v14H7a2 2 0 01-2-2V4z" stroke-linejoin="round"/><path d="M9 8h6M9 12h4" stroke-linecap="round"/>',
  '学习统计':'<path d="M4 20V4M4 20h16" stroke-linecap="round"/><path d="M7 16l4-5 3 3 5-7" stroke-linecap="round" stroke-linejoin="round"/>'
 };
 
@@ -321,6 +332,7 @@ function loadState(){
   s.cat=s.cat||{food:0,mood:0,grow:0,day:''};
   s.roll=s.roll||[];            // 自动顺延的未完成任务
   s.lastRollDay=s.lastRollDay||'';
+  s.bank=s.bank||[];            // 我的题库（导入的粉笔等题目）
   return s;
 }
 function save(){ _lsSet(LS,JSON.stringify(state)); }
@@ -495,6 +507,7 @@ function renderView(i){
   if(m==='申论素材库')return v.innerHTML=viewMaterials();
   if(m==='打卡日历')return v.innerHTML=viewCalendar();
   if(m==='易错考点')return v.innerHTML=viewPoints();
+  if(m==='我的题库')return v.innerHTML=viewBank();
   if(m==='学习统计')return v.innerHTML=viewStats();
 }
 
@@ -900,6 +913,133 @@ function renderPoints(){
   else dueBox.innerHTML=due.map(p=>`<div class="ptoday"><span class="tag">${p.mod}</span><span style="float:right;font-size:11px;color:#bbb;">下次 ${nextReviewDate(p)}</span><div style="margin-top:6px;font-size:13px;line-height:1.6;">${escapeHtml(p.text)}</div>${p.img?`<img src="${p.img}" style="max-width:100%;border-radius:10px;margin-top:6px;">`:''}<div class="ptoday-btns"><button class="btn" style="flex:1" onclick="markPoint('${p.id}','mastered')">✅ 已掌握</button><button class="btn ghost" style="flex:1" onclick="markPoint('${p.id}','review')">🔁 需复习</button></div></div>`).join('');
   if(!all.length){ allBox.innerHTML='<div style="font-size:12px;color:#bbb;">还没有考点，把常错的知识点记下来吧~</div>'; }
   else allBox.innerHTML=all.map(p=>`<div class="ptall"><span class="tag">${p.mod}</span>${p.mastered?'<span class="badge-ok">已掌握</span>':`<span class="badge-due">${reviewProgress(p)}/6轮</span>`}<span class="del" style="float:right;cursor:pointer;color:#E88;font-size:18px;" onclick="delPoint('${p.id}')">×</span><div style="margin-top:4px;font-size:13px;line-height:1.6;">${escapeHtml(p.text)}</div></div>`).join('');
+}
+
+/* ===== 我的题库（导入粉笔等题库 + 刷题 + 艾宾浩斯复习） ===== */
+let bankTab=0;          // 0我的题目 1刷题 2待复习 3导入
+let quizCur=null;       // 当前刷题题目
+let bankFiltVal='全部';
+function viewBank(){
+  const seg=['我的题目','刷题','待复习','导入'];
+  let h=`<div class="card"><h2>📚 我的题库</h2>
+    <div class="seg">
+      ${seg.map((s,i)=>`<div class="seg-i${i===bankTab?' active':''}" id="bankTab${i}" onclick="switchBankTab(${i})">${s}</div>`).join('')}
+    </div>
+    <div id="bankBody"></div></div>`;
+  setTimeout(()=>{ switch(bankTab){ case 0:renderBankList();break; case 1:renderBankQuiz();break; case 2:renderBankDue();break; case 3:renderBankImport();break; } },20);
+  return h;
+}
+function switchBankTab(i){ bankTab=i; for(let k=0;k<4;k++){ const t=document.getElementById('bankTab'+k); if(t)t.classList.toggle('active',k===i); } const b=document.getElementById('bankBody'); if(!b)return; switch(i){ case 0:renderBankList();break; case 1:renderBankQuiz();break; case 2:renderBankDue();break; case 3:renderBankImport();break; } }
+function renderBankList(){
+  const all=state.bank||[];
+  const due=all.filter(b=>!b.mastered && isDue(b)).length;
+  const mastered=all.filter(b=>b.mastered).length;
+  let h=`<div class="point-stat">
+    <div class="ps-box"><div class="n">${all.length}</div><div class="l">题目总数</div></div>
+    <div class="ps-box"><div class="n">${due}</div><div class="l">待复习</div></div>
+    <div class="ps-box"><div class="n">${mastered}</div><div class="l">已掌握</div></div>
+  </div>`;
+  const mods=['全部'].concat(MODULES.slice(1,8));
+  h+=`<div class="row" style="margin:8px 0;"><select id="bankFilt" onchange="bankFiltVal=this.value;renderBankList()" style="flex:1;">${mods.map(m=>`<option value="${m}"${m===bankFiltVal?' selected':''}>${m==='全部'?'全部模块':m}</option>`).join('')}</select></div>`;
+  let list=all; if(bankFiltVal!=='全部') list=all.filter(b=>b.mod===bankFiltVal);
+  if(!list.length) h+='<div style="font-size:12px;color:#bbb;margin-top:8px;">还没有题目，去「导入」把粉笔题库搬进来吧~</div>';
+  else h+=list.slice().reverse().map(b=>`<div class="ptall"><span class="tag">${b.mod}</span>${b.mastered?'<span class="badge-ok">已掌握</span>':(b.reviews&&b.reviews.length?`<span class="badge-due">${Math.min(b.reviews.length,6)}/6轮</span>`:'')}<span class="del" style="float:right;cursor:pointer;color:#E88;font-size:18px;" onclick="delBank('${b.id}')">×</span><div style="margin-top:4px;font-size:13px;line-height:1.6;">${escapeHtml(b.q)}</div><div style="font-size:11px;color:#bbb;margin-top:3px;">对${b.right||0} 错${b.wrong||0}</div></div>`).join('');
+  const el=document.getElementById('bankBody'); if(el)el.innerHTML=h;
+}
+function delBank(id){ state.bank=state.bank.filter(b=>b.id!==id); save(); renderBankList(); }
+function renderBankDue(){
+  const all=state.bank||[];
+  const due=all.filter(b=>!b.mastered && isDue(b));
+  let h=`<div style="font-size:12px;color:var(--txt-l);margin-bottom:8px;">按艾宾浩斯曲线排程，今天有 <b>${due.length}</b> 道题待复习。</div>`;
+  if(!due.length) h+='<div style="font-size:12px;color:#bbb;">🎉 今天没有待复习的题目，保持节奏！</div>';
+  else h+=due.map(b=>`<div class="ptoday"><span class="tag">${b.mod}</span><span style="float:right;font-size:11px;color:#bbb;">下次 ${nextReviewDate(b)}</span><div style="margin-top:6px;font-size:13px;line-height:1.6;">${escapeHtml(b.q)}</div>${b.img?`<img src="${b.img}" style="max-width:100%;border-radius:10px;margin-top:6px;">`:''}<div class="ptoday-btns"><button class="btn" style="flex:1" onclick="markBank('${b.id}','mastered')">✅ 已掌握</button><button class="btn ghost" style="flex:1" onclick="markBank('${b.id}','review')">🔁 需复习</button></div></div>`).join('');
+  const el=document.getElementById('bankBody'); if(el)el.innerHTML=h;
+}
+function markBank(id,type){
+  const b=(state.bank||[]).find(x=>x.id===id); if(!b)return;
+  b.reviews=b.reviews||[];
+  if(type==='mastered'){ b.mastered=true; }
+  else { b.reviews.push(todayKey()); if(b.reviews.length>=REVIEW_INTERVALS.length) b.mastered=true; }
+  save(); renderBankDue();
+  toast(type==='mastered'?'已掌握，太棒了！🎉':'复习已记录，明天继续 💪');
+}
+function renderBankQuiz(){
+  const all=state.bank||[];
+  const el=document.getElementById('bankBody'); if(!el)return;
+  if(!all.length){ el.innerHTML='<div style="font-size:12px;color:#bbb;">还没有题目，去「导入」把粉笔题库搬进来再刷题~</div>'; return; }
+  const due=all.filter(b=>!b.mastered && isDue(b));
+  const pool=due.length?due:all.filter(b=>!b.mastered);
+  if(!pool.length){ el.innerHTML='<div style="font-size:13px;color:#2a7;">🎉 题目都已掌握，去「导入」加更多题吧！</div>'; return; }
+  quizCur=pool[Math.floor(Math.random()*pool.length)];
+  const b=quizCur; const letters=['A','B','C','D','E'];
+  let h=`<div style="font-size:12px;color:#a35;margin-bottom:6px;">📝 ${b.mod}${due.length?' · 优先复习待做题':''}</div>`;
+  h+=`<div style="font-size:14px;line-height:1.7;margin-bottom:10px;">${escapeHtml(b.q)}</div>`;
+  h+=b.opts.map((o,i)=>`<div class="qopt" data-i="${i}" onclick="answerBank(${i})"><span class="qabc">${letters[i]}</span><span>${escapeHtml(o)}</span></div>`).join('');
+  h+=`<div id="bankQuizFB"></div><div style="margin-top:10px;"><button class="btn ghost" onclick="quizNext()">跳过 ⏭</button></div>`;
+  el.innerHTML=h;
+}
+function answerBank(i){
+  const b=quizCur; if(!b)return;
+  const corr=b.ans; b.right=b.right||0; b.wrong=b.wrong||0;
+  if(i===corr){ b.right++; toast('✅ 答对了！'); }
+  else { b.wrong++; b.reviews=b.reviews||[]; b.reviews.push(todayKey()); if(b.reviews.length>=REVIEW_INTERVALS.length) b.mastered=true; toast('❌ 答错啦，已加入待复习'); }
+  save();
+  const letters=['A','B','C','D','E'];
+  const fb=document.getElementById('bankQuizFB');
+  if(fb)fb.innerHTML=`<div class="qfb ${i===corr?'ok':'err'}">${i===corr?'✅ 回答正确':'❌ 正确答案：'+letters[corr]}</div><div class="mcq-why">💡 ${escapeHtml(b.why||'（暂无解析）')}</div><button class="btn" style="margin-top:8px;" onclick="quizNext()">下一题 →</button>`;
+  document.querySelectorAll('.qopt').forEach(el=>{ el.classList.add('disabled'); const ii=+el.dataset.i; if(ii===corr)el.classList.add('correct'); if(ii===i&&i!==corr)el.classList.add('wrong'); });
+  quizCur=null;
+}
+function quizNext(){ quizCur=null; renderBankQuiz(); }
+function renderBankImport(){
+  let h=`<div class="seg">
+    <div class="seg-i active" id="bImp0" onclick="switchBankImp(0)">文本粘贴</div>
+    <div class="seg-i" id="bImp1" onclick="switchBankImp(1)">截图识别</div>
+  </div>
+  <div id="bImp0p">
+    <div style="font-size:12px;color:#a35;line-height:1.6;">每行一道题，格式：<b>模块|题干|选项A|选项B|选项C|选项D|答案|解析</b>。例：<br>言语理解|下列哪组成语…|A.xx|B.xx|C.xx|D.xx|C|解析文字…<br>答案填字母 A-D（或数字 1-4）。支持多行批量导入。</div>
+    <textarea id="bankText" rows="7" style="width:100%;margin-top:8px;border-radius:10px;border:1px solid #FFD3E6;padding:8px;font-size:13px;" placeholder="言语理解|题干……|A.选项|B.选项|C.选项|D.选项|C|解析"></textarea>
+    <button class="btn" style="margin-top:8px;" onclick="batchImportBank()">📥 导入题库</button>
+  </div>
+  <div id="bImp1p" style="display:none;">
+    <label>上传题目截图</label>
+    <input type="file" id="bankOcr" accept="image/*" onchange="previewBankOcr(this)">
+    <div id="bankOcrPrev" style="margin-top:8px;"></div>
+    <div style="font-size:12px;color:#a35;line-height:1.7;margin-top:8px;background:#FFF6FA;border-radius:10px;padding:10px;">
+      📷 <b>截图识别怎么用：</b><br>1. 上传截图后<b>长按预览图保存到相册</b>；<br>2. 回到对话框把图<b>发给我</b>，我会 OCR 识别成文字；<br>3. 复制我整理好的文字，切回「文本粘贴」粘贴导入。
+    </div>
+    <button class="btn ghost" style="margin-top:8px;" onclick="switchBankImp(0)">➡️ 去文本粘贴</button>
+  </div>`;
+  const el=document.getElementById('bankBody'); if(el)el.innerHTML=h;
+}
+function switchBankImp(i){ const a=document.getElementById('bImp0p'),b=document.getElementById('bImp1p'); if(a)a.style.display=i===0?'block':'none'; if(b)b.style.display=i===1?'block':'none'; const t0=document.getElementById('bImp0'),t1=document.getElementById('bImp1'); if(t0)t0.classList.toggle('active',i===0); if(t1)t1.classList.toggle('active',i===1); }
+function previewBankOcr(input){ const prev=document.getElementById('bankOcrPrev'); if(!prev)return; const f=input.files&&input.files[0]; if(!f){prev.innerHTML='';return;} const r=new FileReader(); r.onload=e=>{ prev.innerHTML=`<img src="${e.target.result}" style="max-width:100%;border-radius:10px;border:1px solid #FFD3E6;">`; }; r.readAsDataURL(f); }
+function batchImportBank(){
+  const ta=document.getElementById('bankText');
+  const lines=(ta.value||'').split(/\n/).map(s=>s.trim()).filter(Boolean);
+  if(!lines.length){ toast('请先粘贴题目'); return; }
+  const known=new Set(MODULES.slice(1,8));
+  let added=0;
+  lines.forEach(line=>{
+    const f=line.split('|');
+    if(f.length<5) return;
+    let mod=f[0].trim(), q=f[1].trim();
+    if(!known.has(mod)){ q=mod+' '+q; mod='言语理解'; }
+    const why=f[f.length-1].trim();
+    const ansField=f[f.length-2].trim();
+    const opts=f.slice(2,f.length-2).map(o=>o.trim()).filter(Boolean);
+    if(!opts.length || !q) return;
+    const a=ansField.toUpperCase(); let ai=0;
+    if(/^[A-E]$/.test(a)) ai=a.charCodeAt(0)-65;
+    else if(/^\d+$/.test(a)) ai=Math.max(0,parseInt(a)-1);
+    else { const m=a.match(/[A-E]/); if(m) ai=m[0].charCodeAt(0)-65; }
+    if(ai>=opts.length) ai=0;
+    state.bank.unshift({id:'b'+Date.now()+Math.random().toString(36).slice(2,7),mod,q,opts,ans:ai,why,img:null,created:todayKey(),reviews:[],mastered:false,right:0,wrong:0});
+    added++;
+  });
+  save(); ta.value='';
+  toast('已导入 '+added+' 道题 📚');
+  bankTab=0; switchBankTab(0);
 }
 
 /* ===== 学习统计 ===== */

@@ -36,7 +36,7 @@ body{
   width:62px; padding:8px 2px; border-radius:16px; text-align:center; cursor:pointer;
   color:var(--txt-l); transition:.2s; font-size:10px; line-height:1.2;
 }
-.nav-item svg{ width:24px; height:24px; display:block; margin:0 auto 3px; }
+.nav-item svg,.nav-kitty{ width:28px; height:28px; display:block; margin:0 auto 3px; border-radius:50%; object-fit:cover; }
 .nav-item span{ display:block; }
 .nav-item.active{ background:var(--pink); color:#fff; box-shadow:0 4px 12px rgba(255,105,180,.45); }
 .nav-item:active{ transform:scale(.94); }
@@ -248,19 +248,15 @@ function dayIndex(){const d=new Date();return Math.floor((d-new Date(d.getFullYe
 /* ============ 状态 ============ */
 const LS='kaogong_pro_v2';
 const MODULES=['倒计时','言语理解','资料分析','逻辑判断','政治理论','数量关系','常识判断','申论','打卡日历','错题本','学习统计'];
-const MOD_ICONS={
- '倒计时':'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/><path d="M12 2v2M12 20v2" stroke-linecap="round"/>',
- '言语理解':'<path d="M4 5h16v10H9l-5 5z" stroke-linejoin="round"/><path d="M8 9h8M8 12h5" stroke-linecap="round"/>',
- '资料分析':'<rect x="4" y="12" width="3" height="8" rx="1"/><rect x="10" y="7" width="3" height="13" rx="1"/><rect x="16" y="3" width="3" height="17" rx="1"/>',
- '逻辑判断':'<path d="M10 4a2 2 0 104 0 2 2 0 000 4 2 2 0 004 0v-2a2 2 0 00-2-2 2 2 0 00-2-2z" stroke-linejoin="round"/><path d="M4 14a2 2 0 104 0 2 2 0 000 4 2 2 0 01-4 0" stroke-linejoin="round"/>',
- '政治理论':'<path d="M5 21V4h12l-2 3 2 3H5" stroke-linejoin="round"/>',
- '数量关系':'<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>',
- '常识判断':'<path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.5c.8.8.5 1.8.5 3.5h6c0-1.7-.3-2.7.5-3.5A6 6 0 0012 3z" stroke-linejoin="round"/>',
- '申论':'<path d="M4 20l4-1L19 8l-3-3L5 16z" stroke-linejoin="round"/><path d="M14 6l3 3" stroke-linecap="round"/>',
- '打卡日历':'<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4" stroke-linecap="round"/>',
- '错题本':'<path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z" stroke-linejoin="round"/><path d="M9 8h7M9 12h7" stroke-linecap="round"/>',
- '学习统计':'<path d="M4 20V4M4 20h16" stroke-linecap="round"/><path d="M7 16l4-5 3 3 5-7" stroke-linecap="round" stroke-linejoin="round"/>'
-};
+/* ============ Hello Kitty 导航图标 ============ */
+const NAV_ICONS=[
+ 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAAmACgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD7Loqjr1w9rpckyEggqCR2BYA/zqkl3cyqv2RGiXHzM6kj8AaqMeYTdjUvLy1swpuriOHecLvbGfpUsbpIgeN1dGGQynINeX+LrtX1+S2uHlTUYVBinc7UCEAjaBgHPI+uataDrd5a6e0gYNGAZNnIQ8dscj86i6vY9NZdKVGM4vV9D0iiuc8MeJY9VuBbkKdylo5FzhsdQQehGaKZxVaM6UuWaszjfi14nvZ/EVt4IsLbXIIJIxc6neWNqWkMJICRxMORubO5wMqEIHJBFCPRPh9b67D4ft5Bp+vSwmeBrW+mjvNoz84k3Ek8E4bOcHgjNXfjN4T1288Qad4j8N2Wp6reRwtBc2SakLSBoVO9fnDK2/fggfMCCwO3g1xz6jp//CY2+v3HgvWz4ogt/IVPskkWwEHgvIRHgbmAck8E4zScuVDpwU93Y2rvxTrl3cDwTfaPHea2mqJpUXiCaCFrcBovtAnMWd3mCAFioGwyD0OKZ4q8AeCrbVrPR7K9S48QXEJm+zX+oSNcXKDOZFbI2nIbgbV4OAMUv9iao+lS6odQsV8Svqi6yp+Y26TqnlLb7vvGLycxFsZyS2O1U7jVLC+8Y2fia68Fa7/wlFnatbQIltJNkYbADxZjYDc2HOMBj06Vnzpm9Fyg7p7d9i18ELqKy8cz6Fc3dxeb7R59NdkkdkCsEmjkkKgNt+Ta2eQ+CSQMldD8I9A8RJ4kvfEPii21qyuPsi21laXmoR3aRxOweQmRTnzC6jK4AAVeWycFaRVkYV60q0+aR6jUF5ZWl4gS7tYZ1HQSIGx+dFFMxKA8N6Fu3f2Va5/3OKv2lna2ibLW2hgU9RGgXP5UUUkkh3bJ6KKKYj//2Q==',
+ 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAAmACgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD7LoqlreqWej6dLf30hSGMEnAyWOM4A7nivD9c+J+r+I9HjXTdBvLaOWRmL/aVPnIAQAem3nnHOcAc1Lklud+Dy6tivejpG9m20l+O577RXzx4P+Kb6Jok7SGe7dmVLexJ+YSFsEbiMBcc8flXSX/xiuLK0juLrwrqCKGAuZTcptiycDaBneOnp6Uc8bbnVWyHGU6nIo31stUr/Jv+meu293a3E00MFxFLLA22VEcEocZwR2orjG0K30zx9Zava6fqt8NSkleSWJ1ENoxXO5wcEhsnHXB7HiimmediKUIcrg7pq/z6r7/T9Sn478NQ3Nxqt297rl1cXESGKLyTJbwBCTgYAGDz3JGTXmF34a1DwyNP0++8QaHp1vql4LOwa4Z3kEj8hFCjDe2SAO5r3PxJp95fXgghtpbiKSP5jPdmO2j7Y2J8zsfQ8e9cbr2kanpS2632lpqtvaustvcRW/meU4GAwU5ZGGcZH51nOK3senSzKrSoqCad+jSeysv6f43NKXwboVx8PI/BqSSwwRANDcgAyrOG3CX3YtkkehIrzbw/og8TNcm48QaRqOm6TetBdLp6yb57iI52OHA2gHBIGc9jXQR+KT9r/wBZc8Db5PlHr69M5rZ0PRL/AFSCeOy0qLSrW4kaaaSW38sSu33jsGGZm7t+tZ83O9iaOPrUk7y3d7vdN7tef9bnf6Lqi6hFGDa3kEnlhj51uyKenQniiqPhexvLK4lhuLaa2SNAEEd2ZrZ/dQ/zoR6dOe9FdCPMrxjGdo7HQUUUUzEKKKKACiiigD//2Q==',
+ 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAAnACgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD7KpMjnkcUtZWniRbu8aZiCZ2CD/Z7GlJ2KSuYHivxa2nTzRwWl3dkP5EUNsQHZ8ZZiTwAMH8q0NE8RSSadCuoQOl6wyIyAGdeucDOGx1HqPSuc8Q+BtSv9fub2y8QGyt7hy7II9zKT97B9D1rkPFdlqelPDB4nmW704MfKeFdomYDGJD/AA8HPHWoUm2fQUcLg8RCNOD9753/AMj2yz1Czu5XhgnVpYwC8ZyGX6g0V598Gra5u57nXZFMdoIvstqGYsXAIycnkgbVGT1OaK2lHldjx8ZQhQrOnB3selNu2naQGxwSMivOk8S3qeJpdNubKUR/ZzP9rMTRIz79uzY3K5GGGT0qf4o+OdT8JajZQWum29zDcws++RmBDKcEcexH515xrXjW9uLtZrrw/HZTTN5jyKzhpAeMncSD049Khq6O3BZbVqJTto/NHqE2uEwyGBkeRVIUFuN2OAfSuVh1fUNR8HQnxVb21rfmMtdIhBSMgnkckdMHqarwp4kv9O0k2suixNdQtM7zs6gDAI5xzwelWvhl9l1zVr3T9aZJrm2JKiBisTgHDd8nnHfpWuGil7z6FVsMoQcovb/hja+CttejR2uri4vpIGdvJLXcMkMg4BIEYHPHeivQLa3gtohFbwxwxjoqKFH5CilUnzzcu547d3c4X42aDcax4ftbi0haWazn3FVKglGG043EDrt715BrFvqTog1CKVRCm0HEfT3w5zRRUH0GVYuUYKFk7N2+Zs/D2HU5vEQu5LeTULcRgW8bSqVgfjJCsQBkeleiaJ4Y1RPHSeIvstvaQnPmoZPv5UglQvAPrnr1oorS/Je3U5cxxM1WaXa3yPQO1FFFZnkH/9k=',
+ 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAAmACgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6z8XXV5Y6PJd21wLdIvmmcQea4X/YUkDOcdeKz/B+txPpRfUtYikleY7fNdQUGB8m4BVYjuV4BOM8V0d60aWsrSoHj2ncpGQR6Viarb2t7JZxtGztAwdI4X2oOmA2RjHHSmot7HRCrTVPkmvmdBRXgeu+NNabWzNFdyQzC6ZPlmbbEoYjbt6HH681uf8ACzLwTRwxx2yzRqDI7IxD8dTzxn07VPNHuepLIMVyxlGzv+B7BRWZ4V1Zdc0C01VI/LE6klc9CCVP4ZBopnizg4ScZbouaht+wz7gSBGxIHXpWHp0ywW6GT7zDcxPUk9TWV8R9HvryRZ4l1DULaSNklt5NY+wWFsoGTJK0Y81wfT5hx/D1rz9NVl1Hw/aWv8Aas8H2YGGKfTmktre6jXgGJny0kYGAHB5IJBo5+VDpwU3ZnpN94b8HajqEmo3ehWElzJzJI8fLH1IHBPv1rz3XfDnhaea8l8Oa9b2rQwmae2jmWWMAAjcXJJjzjknI6nFX08Q/ZbKKN5QIwu0FnJJ28dSefqeaj8N2Vzr0k1to0clvbzEia7hQIkWerKcYL+nXnrxWDnd2aPSoYmrRTcaj0N34W+Jxftp+jWF/wCDms4rXcbew1hrm6VQOu3y1B+Y8n3orpfDOg63o94En8TvqmnJF5aRXVhEs6kYwfNi2gjA6FMn1orc8uUnJts19a0nTdasvsOq2cV5al1kaGUbkYqcjcvRhkDg5FSXthY3tuLe8tILiEdEkjDKPwNFFAjnNP8ABOnQazNcXFpp09io/wBEtjag+SSQSeSR27DvXVRRpFGscaKiKMBVGAB9KKKcpOTuxRioqyHUUUUhn//Z',
+ 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAAoACgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD7LooqvfXtrYw+ddTpEnPLMBnAz+PAoGk27IsUVgaH4w0LV0la3uxGImCnzcLnPQg5xz+dbVtcwXAYwyo+xtrbWBwfQ470F1KU6bcZqzJaKKKDMK8p+MOkXWr6xbXMbwvDYwyO8F0dq4A+ZlABJOMdu3vXq1Y+o+HrO9MrvLPHK7bkeMhfLPqABg++7JqZK6sdWExDw8/aR3t+Z5E3hDSF+Hv9t/a4ftK/8TR8pJ5DRbM+WI8ZyFOc7N27t2rsfhDYpo0V5AyoZr547krbj93EpTCjnBzgZJwOT7VeXwVqIuvM/t/5em77N8+PruxW/p3h+zsnikjkmeRDudpCG8w46kEcEf7OKiMXfY6quY1K1NwqSvf+rehr0UUVqeWFFFFABQaKKAEzyOv5UUUUAf/Z'
+];
+const NAV_MAP=[0,2,2,0,2,0,2,2,1,3,4];
 
 let state=loadState();
 function loadState(){
@@ -397,7 +393,7 @@ function renderNav(){
     const d=document.createElement('div');
     d.className='nav-item'+(i===0?' active':'');
     d.dataset.idx=i; d.dataset.mod=m;
-    d.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">'+MOD_ICONS[m]+'</svg><span>'+m+'</span>';
+    d.innerHTML='<img class="nav-kitty" src="'+NAV_ICONS[NAV_MAP[i]]+'" alt="'+m+'"><span>'+m+'</span>';
     d.onclick=()=>{ document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active')); d.classList.add('active'); renderView(i); };
     nav.appendChild(d);
   });
@@ -478,7 +474,7 @@ function renderOverviewMods(){
   box.innerHTML=MODULES.slice(1,8).map((m,i)=>{
     const p=progressOf(m); const min=(modStudy(m).pomo)||0;
     return `<div class="overview-mod" onclick="jumpMod(${i+1})">
-      <span>${MOD_ICONS[m]?'':''}📌 ${m}</span>
+      <span>${NAV_ICONS[NAV_MAP[i]]?'':''}📌 ${m}</span>
       <span><b class="pct">${p}%</b> · ${min}分 ›</span></div>`;
   }).join('');
 }
@@ -488,12 +484,12 @@ function setExam(name,val){ state.examDates[name]=val; save(); renderView(0); to
 /* ===== 通用学习模块（番茄钟+待办+进度+扩展） ===== */
 function viewStudy(mod,opt){
   const ms=modStudy(mod);
-  let h=`<div class="card"><h2>${MOD_ICONS[mod]?'':''}📚 ${mod}</h2>`;
+  let h=`<div class="card"><h2>${NAV_ICONS[NAV_MAP[i]]?'':''}📚 ${mod}</h2>`;
   // 番茄钟
   h+=`<div class="pomo-wrap"><div class="pomo-circle"><svg width="140" height="140">
       <circle cx="70" cy="70" r="62" fill="none" stroke="#FFD1DC" stroke-width="10"/>
       <circle id="pomoArc_${mod}" cx="70" cy="70" r="62" fill="none" stroke="#FF69B4" stroke-width="10" stroke-linecap="round" stroke-dasharray="389" stroke-dashoffset="389"/>
-    </svg><div class="t"><div class="time" id="pomoTime_${mod}">25:00</div><div class="lab">番茄钟</div></div></div>
+    "><div class="t"><div class="time" id="pomoTime_${mod}">25:00</div><div class="lab">番茄钟</div></div></div>
     <div><div id="pomoInfo_${mod}" style="font-size:13px;color:var(--txt-l);margin-bottom:8px;">今日已专注：<b class="pct">${ms.pomo}</b> 分钟</div>
     <button class="btn" onclick="pomoStart('${mod}')">▶ 开始</button>
     <button class="btn ghost" onclick="pomoReset('${mod}')">↺ 重置</button></div></div>`;

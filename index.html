@@ -216,6 +216,9 @@ body{ overscroll-behavior:none; -webkit-user-select:none; user-select:none; }
 .ptall{ background:#fff; border:1px solid #FFE3EE; border-radius:12px; padding:10px; margin:6px 0; }
 .badge-ok{ background:#C8F0D0; color:#1a7a3a; font-size:11px; padding:1px 8px; border-radius:10px; margin-left:6px; }
 .badge-due{ background:#FFE3EE; color:var(--pink-d); font-size:11px; padding:1px 8px; border-radius:10px; margin-left:6px; }
+.seg{ display:flex; gap:6px; margin:4px 0 12px; background:#FFE6EF; border-radius:12px; padding:4px; }
+.seg-i{ flex:1; text-align:center; font-size:13px; padding:8px 4px; border-radius:9px; color:var(--txt-l); cursor:pointer; user-select:none; }
+.seg-i.active{ background:#fff; color:var(--pink-d); font-weight:bold; box-shadow:0 2px 6px rgba(255,105,180,.18); }
 /* 申论素材库 */
 .mat-card{ background:#FFF0F5; border-radius:14px; padding:14px; margin:10px 0; border-left:4px solid var(--pink); }
 .mc-title{ font-weight:bold; font-size:15px; color:var(--pink-d); margin-bottom:6px; }
@@ -758,23 +761,41 @@ function viewPoints(){
     </div>
     <h3>📌 今日需复习（艾宾浩斯智能排程）</h3>
     <div id="pointToday"></div>
-    <h3>➕ 添加易错考点</h3>
-    <div class="row"><select id="pointMod" style="flex:1;">${MODULES.slice(1,8).map(m=>`<option value="${m}">${m}</option>`).join('')}</select></div>
-    <label>考点内容 / 易错原因 / 正确思路</label>
-    <textarea id="pointText" rows="3" placeholder="例：资料分析·截位直除时单位换算出错（万/亿）…"></textarea>
-    <label>配图（题目截图，可选）</label>
-    <input type="file" id="pointImg" accept="image/*">
-    <button class="btn" style="margin-top:8px;" onclick="addPoint()">+ 保存考点</button>
-    <button class="btn ghost" style="margin-top:8px;margin-left:8px;" onclick="toggleBatch()">📥 批量导入</button>
-    <div id="pointBatch" style="display:none;margin-top:10px;padding:10px;background:#FFF6FA;border-radius:12px;border:1px dashed #FFC2DD;">
-      <div style="font-size:12px;color:#a35;line-height:1.6;">从粉笔错题本复制后粘贴到这里，每行一条。格式：<b>模块|内容</b>（模块可省略，默认用上方所选模块）。例：<br>言语理解|细节题偷换概念<br>资料分析|截位直除单位换算（万/亿）出错</div>
+    <h3>➕ 导入易错考点</h3>
+    <div class="seg">
+      <div class="seg-i active" id="impTab0" onclick="switchImport(0)">单条添加</div>
+      <div class="seg-i" id="impTab1" onclick="switchImport(1)">批量粘贴</div>
+      <div class="seg-i" id="impTab2" onclick="switchImport(2)">截图识别</div>
+    </div>
+    <div id="imp0">
+      <div class="row"><select id="pointMod" style="flex:1;">${MODULES.slice(1,8).map(m=>`<option value="${m}">${m}</option>`).join('')}</select></div>
+      <label>考点内容 / 易错原因 / 正确思路</label>
+      <textarea id="pointText" rows="3" placeholder="例：资料分析·截位直除时单位换算出错（万/亿）…"></textarea>
+      <label>配图（题目截图，可选）</label>
+      <input type="file" id="pointImg" accept="image/*">
+      <button class="btn" style="margin-top:8px;" onclick="addPoint()">+ 保存考点</button>
+    </div>
+    <div id="imp1" style="display:none;">
+      <div style="font-size:12px;color:#a35;line-height:1.6;">从粉笔错题本复制后粘贴，每行一条。格式：<b>模块|内容</b>（模块可省略，默认用上方所选模块）。例：<br>言语理解|细节题偷换概念<br>资料分析|截位直除单位换算（万/亿）出错</div>
       <textarea id="batchText" rows="6" style="width:100%;margin-top:8px;border-radius:10px;border:1px solid #FFD3E6;padding:8px;font-size:13px;" placeholder="言语理解|……
 资料分析|……
 （每行一条）"></textarea>
       <div style="display:flex;gap:8px;margin-top:8px;">
         <button class="btn" style="flex:1" onclick="batchImportPoints()">📥 导入</button>
-        <button class="btn ghost" style="flex:1" onclick="toggleBatch()">收起</button>
       </div>
+    </div>
+    <div id="imp2" style="display:none;">
+      <label>上传错题截图</label>
+      <input type="file" id="ocrImg" accept="image/*" onchange="previewOcr(this)">
+      <div id="ocrPrev" style="margin-top:8px;"></div>
+      <div style="font-size:12px;color:#a35;line-height:1.7;margin-top:8px;background:#FFF6FA;border-radius:10px;padding:10px;">
+        📷 <b>截图识别怎么用：</b><br>
+        1. 上传截图后<b>长按预览图保存到相册</b>；<br>
+        2. 回到对话框把图<b>发给我</b>，我会 OCR 识别成文字；<br>
+        3. 复制我整理好的文字，切回「批量粘贴」Tab 一键导入。<br>
+        <span style="color:#bbb;">（纯前端版暂不支持自动识别，自动识别由 AI 对话完成）</span>
+      </div>
+      <button class="btn ghost" style="margin-top:8px;" onclick="switchImport(1)">➡️ 去批量粘贴</button>
     </div>
     <h3>📚 全部考点</h3>
     <div id="pointAll"></div></div>`;
@@ -806,6 +827,17 @@ function markPoint(id,type){
 }
 function delPoint(id){ state.points=state.points.filter(p=>p.id!==id); save(); renderPoints(); }
 function toggleBatch(){ const b=document.getElementById('pointBatch'); if(b) b.style.display = b.style.display==='none'?'block':'none'; }
+function switchImport(i){
+  for(let k=0;k<3;k++){
+    const p=document.getElementById('imp'+k); if(p) p.style.display = k===i?'block':'none';
+    const t=document.getElementById('impTab'+k); if(t) t.classList.toggle('active',k===i);
+  }
+}
+function previewOcr(input){
+  const prev=document.getElementById('ocrPrev'); if(!prev)return;
+  const f=input.files&&input.files[0]; if(!f){ prev.innerHTML=''; return; }
+  const r=new FileReader(); r.onload=e=>{ prev.innerHTML=`<img src="${e.target.result}" style="max-width:100%;border-radius:10px;border:1px solid #FFD3E6;">`; }; r.readAsDataURL(f);
+}
 function batchImportPoints(){
   const ta=document.getElementById('batchText');
   const lines=(ta.value||'').split(/\n/).map(s=>s.trim()).filter(Boolean);

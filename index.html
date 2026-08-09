@@ -206,6 +206,36 @@ body{ overscroll-behavior:none; -webkit-user-select:none; user-select:none; }
 .weak-body{ font-size:12px; line-height:1.6; color:var(--txt); }
 .refresh-weak{ font-size:11px; color:var(--txt-l); cursor:pointer; text-decoration:underline; float:right; -webkit-tap-highlight-color:transparent; }
 
+/* 易错考点 */
+.point-stat{ display:flex; gap:8px; margin-bottom:10px; }
+.ps-box{ flex:1; background:#FFF0F5; border-radius:14px; padding:10px 4px; text-align:center; }
+.ps-box .n{ font-size:22px; font-weight:bold; color:var(--pink); }
+.ps-box .l{ font-size:11px; color:var(--txt-l); }
+.ptoday{ background:#fff; border:1px solid #FFD1DC; border-radius:14px; padding:12px; margin:8px 0; }
+.ptoday-btns{ display:flex; gap:8px; margin-top:10px; }
+.ptall{ background:#fff; border:1px solid #FFE3EE; border-radius:12px; padding:10px; margin:6px 0; }
+.badge-ok{ background:#C8F0D0; color:#1a7a3a; font-size:11px; padding:1px 8px; border-radius:10px; margin-left:6px; }
+.badge-due{ background:#FFE3EE; color:var(--pink-d); font-size:11px; padding:1px 8px; border-radius:10px; margin-left:6px; }
+/* 申论素材库 */
+.mat-card{ background:#FFF0F5; border-radius:14px; padding:14px; margin:10px 0; border-left:4px solid var(--pink); }
+.mc-title{ font-weight:bold; font-size:15px; color:var(--pink-d); margin-bottom:6px; }
+.mc-tag{ display:inline-block; background:var(--pink); color:#fff; font-size:11px; padding:1px 8px; border-radius:10px; margin-bottom:6px; }
+.mc-body{ font-size:13px; line-height:1.7; color:var(--txt); }
+.mc-use{ font-size:12px; color:var(--pink-d); margin-top:8px; }
+.quote-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; background:#fff; border:1px solid #FFE3EE; border-radius:10px; padding:8px 10px; margin:6px 0; font-size:13px; }
+.btn.mini{ padding:4px 10px; font-size:11px; border-radius:10px; }
+/* AI 诊断 */
+.ai-card{ border:1px solid #FFB3D1; box-shadow:0 4px 16px rgba(255,105,180,.18); }
+.ai-summary{ font-size:13px; color:var(--txt-l); margin-bottom:10px; }
+.ai-summary b{ color:var(--pink); }
+.ai-tip{ display:flex; gap:8px; background:#fff; border-radius:12px; padding:10px; margin:8px 0; border:1px solid #FFE3EE; }
+.ai-tip b{ font-size:13px; }
+.ai-a{ font-size:12px; color:var(--txt-l); margin-top:3px; line-height:1.5; }
+.ai-lv{ flex-shrink:0; font-size:10px; color:#fff; border-radius:8px; padding:2px 6px; height:fit-content; }
+.lv-high{ border-left:4px solid #FF5A7A; } .lv-high .ai-lv{ background:#FF5A7A; }
+.lv-mid{ border-left:4px solid #FFA43C; } .lv-mid .ai-lv{ background:#FFA43C; }
+.lv-good{ border-left:4px solid #4CB96A; } .lv-good .ai-lv{ background:#4CB96A; }
+
 </style>
 </head>
 <body>
@@ -247,7 +277,7 @@ function dayIndex(){const d=new Date();return Math.floor((d-new Date(d.getFullYe
 
 /* ============ 状态 ============ */
 const LS='kaogong_pro_v2';
-const MODULES=['倒计时','言语理解','资料分析','逻辑判断','政治理论','数量关系','常识判断','申论','打卡日历','错题本','学习统计'];
+const MODULES=['倒计时','言语理解','资料分析','逻辑判断','政治理论','数量关系','常识判断','申论素材库','打卡日历','易错考点','学习统计'];
 const MOD_ICONS={
  '倒计时':'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/><path d="M12 2v2M12 20v2" stroke-linecap="round"/>',
  '言语理解':'<path d="M4 5h16v10H9l-5 5z" stroke-linejoin="round"/><path d="M8 9h8M8 12h5" stroke-linecap="round"/>',
@@ -270,6 +300,12 @@ function loadState(){
   s.study=s.study||{};
   s.formulas=s.formulas||defaultFormulas();
   s.mistakes=s.mistakes||[];
+  s.points=s.points||[];
+  if(s.mistakes.length && !s._migrated){  // 旧「错题本」数据迁移到「易错考点」
+    s.points=s.points.concat(s.mistakes.map(m=>({id:'p'+Date.now()+Math.random().toString(36).slice(2,7),mod:m.mod,text:m.text,img:m.img,created:m.date||todayKey(),reviews:[],mastered:false})));
+    s.mistakes=[]; s._migrated=true;
+    try{ _lsSet(LS, JSON.stringify(s)); }catch(e){}
+  }
   s.calendar=s.calendar||{start:'08:00',end:'22:00'};
   s.examDates=s.examDates||{ '国考':'2026-11-28','省考':'2027-03-28','事业编联考':'2026-10-25' };
   s.essayQuotes=s.essayQuotes||{};
@@ -434,9 +470,9 @@ function renderView(i){
   if(m==='政治理论')return v.innerHTML=viewStudy('政治理论',{mcq:'政治理论',bank:POLITICS});
   if(m==='数量关系')return v.innerHTML=viewStudy('数量关系',{formula:true});
   if(m==='常识判断')return v.innerHTML=viewStudy('常识判断',{mcq:'常识判断',bank:COMMON});
-  if(m==='申论')return v.innerHTML=viewEssay();
+  if(m==='申论素材库')return v.innerHTML=viewMaterials();
   if(m==='打卡日历')return v.innerHTML=viewCalendar();
-  if(m==='错题本')return v.innerHTML=viewMistakes();
+  if(m==='易错考点')return v.innerHTML=viewPoints();
   if(m==='学习统计')return v.innerHTML=viewStats();
 }
 
@@ -452,7 +488,7 @@ function viewCountdown(){
       <div class="stat-box"><div class="n">${Object.keys(ts).length}</div><div class="l">学习模块</div></div>
     </div>
     <div id="ovMods"></div></div>`;
-  let h=ov + homeCompanionHTML();
+  let h=ov + homeCompanionHTML() + aiHomeCard();
   h+='<div class="card"><h2>⏰ 考试倒计时</h2><div class="cd-grid">';
   const today=new Date(); today.setHours(0,0,0,0);
   for(const [name,date] of Object.entries(state.examDates)){
@@ -470,7 +506,7 @@ function viewCountdown(){
     +'<input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="onImportFile(event)">'
     +'</div>';
   setTimeout(renderOverviewMods,30);
-  setTimeout(()=>{ renderHomeCat(); renderHomePlan(); renderHomeWeak(); },30);
+  setTimeout(()=>{ renderHomeCat(); renderHomePlan(); renderHomeWeak(); renderHomeAI(); },30);
   return h;
 }
 function renderOverviewMods(){
@@ -599,35 +635,90 @@ function pomoStart(mod){
 function pomoReset(mod){ if(pomoState[mod]&&pomoState[mod].timer)clearInterval(pomoState[mod].timer); pomoState[mod]={total:25*60,left:25*60,running:false}; pomoResetArc(mod); }
 function pomoResetArc(mod){ const arc=document.getElementById('pomoArc_'+mod); const tm=document.getElementById('pomoTime_'+mod); if(arc)arc.setAttribute('stroke-dashoffset',389); if(tm)tm.textContent='25:00'; }
 
-/* ===== 申论 ===== */
-function viewEssay(){
+/* ===== 申论素材库（每日热点 / 案例库 / 金句库） ===== */
+const HOT_TOPICS=[
+  {t:'新质生产力',d:'以科技创新驱动产业创新，摆脱传统增长路径，形成高科技、高效能、高质量的生产力。',a:'可用于“创新发展”“产业升级”“高质量发展”主题；论证时配“人工智能+”“专精特新”实例。'},
+  {t:'乡村振兴',d:'产业、人才、文化、生态、组织“五大振兴”协同推进，端牢饭碗、留住乡愁。',a:'民生/三农主题高频；可嵌“千万工程”“返乡创业”案例。'},
+  {t:'基层治理现代化',d:'党建引领、网格化管理、共建共治共享，把矛盾化解在源头、服务送到家门口。',a:'适用于“社会治理”“社区服务”“枫桥经验”类话题。'},
+  {t:'人工智能治理',d:'统筹发展与安全，推动AI向善，完善数据保护与伦理规范。',a:'科技类热点；论证“技术双刃剑”“制度护航创新”。'},
+  {t:'文化自信',d:'不忘本来、吸收外来、面向未来，让中华优秀传统文化创造性转化。',a:'文化/价值观主题；配“国潮”“非遗活化”“考古热”。'},
+  {t:'绿色发展·双碳',d:'绿水青山就是金山银山，稳妥推进碳达峰碳中和，发展方式绿色低碳转型。',a:'生态主题；配“塞罕坝”“新能源”案例。'},
+  {t:'民生保障',d:'在高质量发展中增进民生福祉，兜牢教育、医疗、养老、住房底线。',a:'民生类万能角度；体现“以人民为中心”。'},
+  {t:'高水平科技自立自强',d:'把科技的命脉牢牢掌握在自己手中，突破“卡脖子”关键核心技术。',a:'创新主题；配“北斗”“神舟”“芯片攻坚”。'}
+];
+const CASES=[
+  {n:'黄文秀',f:'脱贫攻坚',s:'北师大硕士毕业后返乡担任驻村第一书记，带领群众脱贫致富，因公殉职，年仅30岁。',u:'青年担当、乡村振兴、初心使命。'},
+  {n:'张桂梅',f:'教育扶贫',s:'创办全国第一所免费女子高中，帮助近2000名山区女孩考入大学。',u:'教育公平、无私奉献、改变命运。'},
+  {n:'塞罕坝林场',f:'生态治理',s:'三代人接力，将荒漠变成百万亩林海，铸就“绿色长城”。',u:'绿色发展、久久为功、生态文明。'},
+  {n:'北斗团队',f:'科技自立',s:'26年自主攻关，建成全球卫星导航系统，服务亿万用户。',u:'科技自立自强、突破卡脖子。'},
+  {n:'“千万工程”',f:'乡村振兴',s:'浙江20年持续推进，从人居环境整治到乡村全面振兴，获联合国地球卫士奖。',u:'乡村振兴、久久为功、因地制宜。'},
+  {n:'大禹治水',f:'古代治理',s:'改“堵”为“疏”，因势利导、系统治理，三过家门而不入。',u:'系统思维、实干担当（古例亦可用）。'},
+  {n:'焦裕禄',f:'公仆精神',s:'带领兰考人民战风沙、治盐碱，肝病剧痛仍坚守岗位。',u:'为民服务、公仆情怀、迎难而上。'},
+  {n:'中国航天人',f:'开拓创新',s:'神舟、嫦娥、天问、天宫接续突破，托举航天强国梦。',u:'创新、接力奋斗、家国情怀。'}
+];
+const QUOTE_BANK=[
+  {q:'心有所信，方能行远。',th:'理想信念'},
+  {q:'征途漫漫，惟有奋斗。',th:'奋斗拼搏'},
+  {q:'民之所忧，我必念之；民之所盼，我必行之。',th:'为民服务'},
+  {q:'时代呼唤担当，民族振兴是青年的责任。',th:'青年使命'},
+  {q:'不谋全局者，不足谋一域。',th:'系统思维'},
+  {q:'功成不必在我，功成必定有我。',th:'奉献精神'},
+  {q:'路虽远，行则将至；事虽难，做则必成。',th:'实干笃行'},
+  {q:'治国凭圭臬，安邦靠准绳。',th:'法治建设'},
+  {q:'治国有常，而利民为本。',th:'民生为本'},
+  {q:'仓廪实而知礼节，衣食足而知荣辱。',th:'物质基础'},
+  {q:'苟日新，日日新，又日新。',th:'改革创新'},
+  {q:'绿水青山就是金山银山。',th:'生态发展'},
+  {q:'纸上得来终觉浅，绝知此事要躬行。',th:'实践实干'},
+  {q:'利民之事，丝发必兴；厉民之事，毫末必去。',th:'为民服务'},
+  {q:'惟改革者进，惟创新者强，惟改革创新者胜。',th:'改革创新'},
+  {q:'大厦之成，非一木之材也；大海之阔，非一流之归也。',th:'系统思维'},
+  {q:'我将无我，不负人民。',th:'公仆情怀'},
+  {q:'千磨万击还坚劲，任尔东西南北风。',th:'坚韧担当'}
+];
+function viewMaterials(){
   const d=todayKey();
   if(!state.essayQuotes[d]) state.essayQuotes[d]=ESSAY_BANK[dayIndex()%ESSAY_BANK.length];
   const eq=state.essayQuotes[d];
-  let h=`<div class="card"><h2>📝 申论 · 每日金句推送</h2>
+  let h=`<div class="card"><h2>📚 申论素材库</h2>
     <div class="essay-quote"><div class="q">"${eq.q}"</div><div class="t">🎯 ${eq.t}</div></div>
-    <button class="btn ghost" onclick="nextEssay()">换一句金句 ↻</button>
-    <div class="tab" style="margin-top:14px;"><div class="active" id="essayTab0" onclick="switchEssayTab(0)">小题模板</div><div id="essayTab1" onclick="switchEssayTab(1)">大作文模板</div></div>
-    <div id="essayContent"></div></div>`;
-  setTimeout(()=>switchEssayTab(0),30);
+    <button class="btn ghost" onclick="nextQuote()">换一句金句 ↻</button>
+    <div class="tab" style="margin-top:14px;">
+      <div class="active" id="matTab0" onclick="switchMatTab(0)">每日热点</div>
+      <div id="matTab1" onclick="switchMatTab(1)">案例库</div>
+      <div id="matTab2" onclick="switchMatTab(2)">金句库</div>
+    </div>
+    <div id="matContent"></div></div>`;
+  setTimeout(()=>switchMatTab(0),30);
   return h;
 }
-function nextEssay(){ const d=todayKey(); let i=ESSAY_BANK.indexOf(state.essayQuotes[d]); i=(i+1)%ESSAY_BANK.length; state.essayQuotes[d]=ESSAY_BANK[i]; save(); viewEssay(); renderView(7); }
-function switchEssayTab(t){
-  document.getElementById('essayTab0').classList.toggle('active',t===0);
-  document.getElementById('essayTab1').classList.toggle('active',t===1);
-  const c=document.getElementById('essayContent');
+function nextQuote(){ const d=todayKey(); let i=ESSAY_BANK.indexOf(state.essayQuotes[d]); i=(i+1)%ESSAY_BANK.length; state.essayQuotes[d]=ESSAY_BANK[i]; save(); viewMaterials(); renderView(7); }
+function switchMatTab(t){
+  document.getElementById('matTab0').classList.toggle('active',t===0);
+  document.getElementById('matTab1').classList.toggle('active',t===1);
+  document.getElementById('matTab2').classList.toggle('active',t===2);
+  const c=document.getElementById('matContent');
   if(t===0){
-    c.innerHTML=`<h3>归纳概括题</h3><div class="formula">审题：明确作答对象（问题/原因/做法/意义）→ 读材料分层勾画关键词 → 按"核心词+展开"分条 → ①②③标号，每条先写要点词。</div>
-      <h3>综合分析题</h3><div class="formula">是什么（解释含义）→ 为什么（分析原因/影响）→ 怎么办（提出对策）。逻辑：亮明观点→多角度分析→总结提升。</div>
-      <h3>提出对策题</h3><div class="formula">直接对策（材料有）抄原词；间接对策（问题反推/经验借鉴）。对策要具体、可操作、有主体+手段+内容。</div>
-      <h3>应用文（公文）</h3><div class="formula">格式（标题/称谓/落款）+ 正文（开头背景+主体分条+结尾）。常考：倡议书、讲话稿、汇报提纲、短评。</div>`;
+    const ht=HOT_TOPICS[dayIndex()%HOT_TOPICS.length];
+    c.innerHTML=`<div class="mat-card"><div class="mc-title">🔥 今日热点 · ${ht.t}</div><div class="mc-body">${ht.d}</div><div class="mc-use">📌 可用角度：${ht.a}</div></div>
+      <button class="btn ghost" style="margin-top:8px;" onclick="rotateHot()">换一条热点 ↻</button>
+      <div style="font-size:12px;color:#bbb;margin-top:10px;">热点库共 ${HOT_TOPICS.length} 条，覆盖新质生产力、乡村振兴、基层治理、AI治理、文化自信、双碳、民生、科技自立等常考主题。</div>`;
+  }else if(t===1){
+    c.innerHTML=CASES.map(cs=>`<div class="mat-card"><div class="mc-title">🏆 ${cs.n}</div><div class="mc-tag">${cs.f}</div><div class="mc-body">${cs.s}</div><div class="mc-use">✅ 适用：${cs.u}</div></div>`).join('');
   }else{
-    c.innerHTML=`<h3>大作文五段式</h3><div class="formula">① 开头：亮明总论点（引述材料/名言+分析+点题）<br>② 分论点1：理证+例证+回扣<br>③ 分论点2：理证+例证+回扣<br>④ 分论点3：理证+例证+回扣<br>⑤ 结尾：升华主题，呼应开头</div>
-      <h3>分论点展开公式</h3><div class="formula">分论点句 = 角度词 + 总论点关键词。例："以____为支撑，筑牢____根基。"每个分论点嵌1句金句+1个例子（如黄文秀、张桂梅、大禹治水）。</div>
-      <h3>今日可嵌金句</h3><div class="essay-quote"><div class="q">"${state.essayQuotes[todayKey()].q}"</div><div class="t">🎯 ${state.essayQuotes[todayKey()].t}</div></div>`;
+    const themes={};
+    QUOTE_BANK.forEach((q,gi)=>{ (themes[q.th]=themes[q.th]||[]).push({q:q.q,gi:gi}); });
+    c.innerHTML=Object.entries(themes).map(([th,arr])=>`<div style="margin:10px 0;"><div class="mc-tag" style="display:inline-block;margin-bottom:6px;">${th}</div>${arr.map(o=>`<div class="quote-row"><span>"${o.q}"</span><button class="btn ghost mini" onclick="copyText(${o.gi})">复制</button></div>`).join('')}</div>`).join('');
   }
 }
+function rotateHot(){
+  const idx=(dayIndex()+Math.floor(Math.random()*HOT_TOPICS.length))%HOT_TOPICS.length;
+  const ht=HOT_TOPICS[idx];
+  const box=document.getElementById('matContent');
+  if(!box)return;
+  box.innerHTML=`<div class="mat-card"><div class="mc-title">🔥 热点 · ${ht.t}</div><div class="mc-body">${ht.d}</div><div class="mc-use">📌 可用角度：${ht.a}</div></div><button class="btn ghost" style="margin-top:8px;" onclick="rotateHot()">换一条热点 ↻</button>`;
+}
+function copyText(i){ try{ navigator.clipboard.writeText(QUOTE_BANK[i].q); toast('已复制金句 📋'); }catch(e){ toast('复制失败，请手动长按选择'); } }
 
 /* ===== 打卡日历 ===== */
 function viewCalendar(){
@@ -644,52 +735,76 @@ function viewCalendar(){
 }
 function setCal(k,v){ state.calendar[k]=v; save(); toast('已保存'); }
 
-/* ===== 错题本 ===== */
-function viewMistakes(){
-  let h=`<div class="card"><h2>📕 错题本</h2>
-    <div class="row">
-      <select id="mistakeMod" style="flex:1;">
-        ${MODULES.slice(1,8).map(m=>`<option value="${m}">${m}</option>`).join('')}
-      </select>
+/* ===== 易错考点（艾宾浩斯复习排程） ===== */
+const REVIEW_INTERVALS=[1,2,4,7,15,30];   // 艾宾浩斯复习间隔(天)
+function nextReviewDate(p){
+  const base=new Date((p.created||todayKey())+'T00:00:00');
+  const gap=REVIEW_INTERVALS[Math.min(p.reviews.length,REVIEW_INTERVALS.length-1)];
+  base.setDate(base.getDate()+gap);
+  return base.toISOString().slice(0,10);
+}
+function isDue(p){ if(p.mastered)return false; return todayKey()>=nextReviewDate(p); }
+function todayReviewCount(){ return (state.points||[]).filter(isDue).length; }
+function reviewProgress(p){ return Math.min(p.reviews.length,REVIEW_INTERVALS.length); }
+
+function viewPoints(){
+  const all=state.points||[];
+  const due=todayReviewCount();
+  let h=`<div class="card"><h2>🎯 易错考点</h2>
+    <div class="point-stat">
+      <div class="ps-box"><div class="n">${due}</div><div class="l">今日需复习</div></div>
+      <div class="ps-box"><div class="n">${all.length}</div><div class="l">考点总数</div></div>
+      <div class="ps-box"><div class="n">${all.filter(p=>p.mastered).length}</div><div class="l">已掌握</div></div>
     </div>
-    <label>错题内容 / 解析</label>
-    <textarea id="mistakeText" rows="3" placeholder="记录题目、错误原因、正确思路…"></textarea>
-    <label>上传图片（题目截图）</label>
-    <input type="file" id="mistakeImg" accept="image/*">
-    <button class="btn" style="margin-top:8px;" onclick="addMistake()">+ 添加错题</button>
-    <h3>📚 我的错题（点击分类查看）</h3>
-    <div id="mistakeList"></div></div>`;
-  setTimeout(renderMistakes,30);
+    <h3>📌 今日需复习（艾宾浩斯智能排程）</h3>
+    <div id="pointToday"></div>
+    <h3>➕ 添加易错考点</h3>
+    <div class="row"><select id="pointMod" style="flex:1;">${MODULES.slice(1,8).map(m=>`<option value="${m}">${m}</option>`).join('')}</select></div>
+    <label>考点内容 / 易错原因 / 正确思路</label>
+    <textarea id="pointText" rows="3" placeholder="例：资料分析·截位直除时单位换算出错（万/亿）…"></textarea>
+    <label>配图（题目截图，可选）</label>
+    <input type="file" id="pointImg" accept="image/*">
+    <button class="btn" style="margin-top:8px;" onclick="addPoint()">+ 保存考点</button>
+    <h3>📚 全部考点</h3>
+    <div id="pointAll"></div></div>`;
+  setTimeout(renderPoints,30);
   return h;
 }
-function addMistake(){
-  const mod=document.getElementById('mistakeMod').value;
-  const text=document.getElementById('mistakeText').value.trim();
-  const file=document.getElementById('mistakeImg').files[0];
+function addPoint(){
+  const mod=document.getElementById('pointMod').value;
+  const text=document.getElementById('pointText').value.trim();
+  const file=document.getElementById('pointImg').files[0];
   if(!text&&!file){ toast('请填写内容或上传图片'); return; }
   const done=(imgData)=>{
-    state.mistakes.unshift({mod,text,img:imgData,date:todayKey()}); save();
-    document.getElementById('mistakeText').value=''; document.getElementById('mistakeImg').value='';
-    renderMistakes(); toast('错题已保存 📕');
+    state.points.unshift({id:'p'+Date.now()+Math.random().toString(36).slice(2,7),mod,text,img:imgData,created:todayKey(),reviews:[],mastered:false}); save();
+    document.getElementById('pointText').value=''; document.getElementById('pointImg').value='';
+    renderPoints(); toast('考点已加入复习计划 🎯');
   };
   if(file){
     const r=new FileReader();
-    r.onload=e=>{ // 压缩
-      const img=new Image(); img.onload=()=>{
-        const c=document.createElement('canvas'); const max=800; let w=img.width,h=img.height;
-        if(w>max){ h=h*max/w; w=max; } c.width=w; c.height=h;
-        c.getContext('2d').drawImage(img,0,0,w,h);
-        done(c.toDataURL('image/jpeg',0.7));
-      }; img.src=e.target.result;
-    }; r.readAsDataURL(file);
+    r.onload=e=>{ const img=new Image(); img.onload=()=>{ const c=document.createElement('canvas'); const max=800; let w=img.width,h=img.height; if(w>max){h=h*max/w;w=max;} c.width=w;c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); done(c.toDataURL('image/jpeg',0.7)); }; img.src=e.target.result; };
+    r.readAsDataURL(file);
   } else done(null);
 }
-function renderMistakes(){
-  const box=document.getElementById('mistakeList'); if(!box)return;
-  if(!state.mistakes.length){ box.innerHTML='<div style="font-size:12px;color:#bbb;">还没有错题，做错的题记在这里吧~</div>'; return; }
-  box.innerHTML=state.mistakes.map((m,i)=>`<div class="mistake"><span class="tag">${m.mod}</span><span style="float:right;font-size:11px;color:#bbb;">${m.date}</span><div style="margin-top:6px;font-size:13px;line-height:1.6;">${escapeHtml(m.text)}</div>${m.img?`<img src="${m.img}" alt="错题图">`:''}<span class="del" style="float:right;cursor:pointer;color:#E88;font-size:18px;" onclick="delMistake(${i})">×</span></div>`).join('');
+function markPoint(id,type){
+  const p=(state.points||[]).find(x=>x.id===id); if(!p)return;
+  p.reviews.push(todayKey());
+  if(type==='mastered' || p.reviews.length>=REVIEW_INTERVALS.length) p.mastered=true;
+  save(); renderPoints();
+  toast(type==='mastered'?'已掌握，太棒了！🎉':'复习已记录，明天继续 💪');
 }
-function delMistake(i){ state.mistakes.splice(i,1); save(); renderMistakes(); }
+function delPoint(id){ state.points=state.points.filter(p=>p.id!==id); save(); renderPoints(); }
+function renderPoints(){
+  const all=state.points||[];
+  const dueBox=document.getElementById('pointToday');
+  const allBox=document.getElementById('pointAll');
+  if(!dueBox||!allBox)return;
+  const due=all.filter(isDue);
+  if(!due.length){ dueBox.innerHTML='<div style="font-size:12px;color:#bbb;">🎉 今天没有待复习的考点，保持节奏！</div>'; }
+  else dueBox.innerHTML=due.map(p=>`<div class="ptoday"><span class="tag">${p.mod}</span><span style="float:right;font-size:11px;color:#bbb;">下次 ${nextReviewDate(p)}</span><div style="margin-top:6px;font-size:13px;line-height:1.6;">${escapeHtml(p.text)}</div>${p.img?`<img src="${p.img}" style="max-width:100%;border-radius:10px;margin-top:6px;">`:''}<div class="ptoday-btns"><button class="btn" style="flex:1" onclick="markPoint('${p.id}','mastered')">✅ 已掌握</button><button class="btn ghost" style="flex:1" onclick="markPoint('${p.id}','review')">🔁 需复习</button></div></div>`).join('');
+  if(!all.length){ allBox.innerHTML='<div style="font-size:12px;color:#bbb;">还没有考点，把常错的知识点记下来吧~</div>'; }
+  else allBox.innerHTML=all.map(p=>`<div class="ptall"><span class="tag">${p.mod}</span>${p.mastered?'<span class="badge-ok">已掌握</span>':`<span class="badge-due">${reviewProgress(p)}/6轮</span>`}<span class="del" style="float:right;cursor:pointer;color:#E88;font-size:18px;" onclick="delPoint('${p.id}')">×</span><div style="margin-top:4px;font-size:13px;line-height:1.6;">${escapeHtml(p.text)}</div></div>`).join('');
+}
 
 /* ===== 学习统计 ===== */
 function viewStats(){
@@ -710,7 +825,8 @@ function viewStats(){
       <div class="stat-box"><div class="n">${Math.round(totalMin/60*10)/10}</div><div class="l">累计专注(小时)</div></div>
     </div>
     <h3>🍅 各模块专注时长（分钟）</h3><div id="statBars"></div>
-    <h3>📅 最近7天打卡</h3><div id="statWeek" style="display:flex;gap:6px;flex-wrap:wrap;"></div></div>`;
+    <h3>📅 最近7天打卡</h3><div id="statWeek" style="display:flex;gap:6px;flex-wrap:wrap;"></div></div>
+    <div class="card ai-card" style="margin-top:12px;"><h2>🤖 AI 智能诊断</h2><div id="aiBox"></div><button class="btn ghost" style="margin-top:10px;" onclick="renderAI()">🔄 重新分析</button></div>`;
   setTimeout(()=>{
     const sb=document.getElementById('statBars');
     const max=Math.max(1,...Object.values(totals));
@@ -722,6 +838,41 @@ function viewStats(){
     sw.innerHTML=week;
   },30);
   return h;
+}
+
+/* ===== AI 智能诊断（本地启发式引擎） ===== */
+function aiDiagnose(){
+  const today=new Date(); today.setHours(0,0,0,0);
+  const d7=[]; for(let k=6;k>=0;k--){ const d=new Date(today); d.setDate(d.getDate()-k); d7.push(d.toISOString().slice(0,10)); }
+  let totalTodo=0, doneTodo=0; const pomo={};
+  d7.forEach(d=>{ const mods=state.study[d]; if(!mods)return; Object.entries(mods).forEach(([mod,ms])=>{ const ts=ms.todos||[]; totalTodo+=ts.length; doneTodo+=ts.filter(t=>t.done).length; pomo[mod]=(pomo[mod]||0)+(ms.pomo||0); }); });
+  const rate= totalTodo? Math.round(doneTodo/totalTodo*100):0;
+  const weakCnt={}; (state.points||[]).forEach(p=>{ if(!p.mastered) weakCnt[p.mod]=(weakCnt[p.mod]||0)+1; });
+  const weak=Object.entries(weakCnt).sort((a,b)=>b[1]-a[1]);
+  const checked7=d7.filter(d=>state.checkin[d]).length;
+  const tips=[];
+  if(totalTodo>0 && rate<60) tips.push({lv:'高',t:'计划偏满，完成率仅 '+rate+'%',a:'建议每日任务量减 20-30%，优先保核心模块，避免挫败。'});
+  else if(rate>=85 && totalTodo>0) tips.push({lv:'优',t:'完成率优秀 '+rate+'%',a:'节奏很好，可适度加量冲刺薄弱模块。'});
+  if(weak.length){ const wm=weak[0][0], wc=weak[0][1]; tips.push({lv:'高',t:'「'+wm+'」易错最多（'+wc+' 个未掌握）',a:'每天优先安排 30 分钟专项突破，配合错题重做。'}); }
+  const core=['资料分析','数量关系','逻辑判断','言语理解']; let lowMod=null,lowVal=1e9;
+  core.forEach(m=>{ const vv=pomo[m]||0; if(vv<lowVal){lowVal=vv;lowMod=m;} });
+  if(lowMod && lowVal<30 && totalTodo>0) tips.push({lv:'中',t:lowMod+' 近7天专注仅 '+lowVal+' 分',a:'该模块是提分关键，建议每天固定 1 篇/组练习，用番茄钟保底。'});
+  if(checked7<5) tips.push({lv:'中',t:'近7天仅打卡 '+checked7+' 天',a:'连续打卡显著提升坚持率，建议固定时段启动学习。'});
+  const mastered=(state.points||[]).filter(p=>p.mastered).length;
+  if(mastered>0) tips.push({lv:'优',t:mastered+' 个考点已掌握',a:'复习闭环见效，保持艾宾浩斯节奏。'});
+  if(!tips.length) tips.push({lv:'优',t:'数据样本不足',a:'多记录几天学习数据，AI 诊断会更精准。'});
+  return {rate,checked7,weak,tips};
+}
+function renderAI(){ const box=document.getElementById('aiBox'); if(!box)return; const r=aiDiagnose();
+  let s='<div class="ai-summary">近7天完成率 <b>'+r.rate+'%</b> · 打卡 '+r.checked7+'/7 · 高频易错：'+(r.weak[0]?r.weak[0][0]+'('+r.weak[0][1]+')':'无')+'</div>';
+  s+=r.tips.map(t=>`<div class="ai-tip lv-${t.lv}"><span class="ai-lv">${t.lv}</span><div><b>${t.t}</b><div class="ai-a">${t.a}</div></div></div>`).join('');
+  box.innerHTML=s;
+}
+function aiHomeCard(){ return `<div class="card ai-card"><h2>🤖 今日 AI 学习建议</h2><div id="homeAI"></div></div>`; }
+function renderHomeAI(){ const box=document.getElementById('homeAI'); if(!box)return; const r=aiDiagnose();
+  const s='<div class="ai-summary">近7天完成率 <b>'+r.rate+'%</b> · 打卡 '+r.checked7+'/7</div>'+
+    r.tips.slice(0,2).map(t=>`<div class="ai-tip lv-${t.lv}"><span class="ai-lv">${t.lv}</span><div><b>${t.t}</b><div class="ai-a">${t.a}</div></div></div>`).join('');
+  box.innerHTML=s;
 }
 
 /* ===== 工具 ===== */

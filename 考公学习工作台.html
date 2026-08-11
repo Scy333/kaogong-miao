@@ -225,6 +225,10 @@ body{ overscroll-behavior:none; -webkit-user-select:none; user-select:none; }
 .mc-tag{ display:inline-block; background:var(--pink); color:#fff; font-size:11px; padding:1px 8px; border-radius:10px; margin-bottom:6px; }
 .mc-body{ font-size:13px; line-height:1.7; color:var(--txt); }
 .mc-use{ font-size:12px; color:var(--pink-d); margin-top:8px; }
+.mc-src{ font-size:11px; color:#8a8a8a; margin-top:6px; line-height:1.5; background:#F7F7F9; border-radius:8px; padding:5px 8px; }
+.qsrc{ font-size:11px; color:#8a8a8a; margin-top:6px; line-height:1.5; }
+.qby{ display:block; font-size:11px; color:#8a8a8a; margin-top:3px; line-height:1.5; }
+.fw-body{ font-size:13px; line-height:1.9; color:var(--txt); margin-top:6px; text-align:justify; white-space:pre-wrap; }
 .quote-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; background:#fff; border:1px solid #FFE3EE; border-radius:10px; padding:8px 10px; margin:6px 0; font-size:13px; }
 .btn.mini{ padding:4px 10px; font-size:11px; border-radius:10px; }
 /* AI 诊断 */
@@ -416,14 +420,14 @@ const COMMON=[
   {q:'我国第一部纪传体通史是？',opts:['《汉书》','《史记》','《资治通鉴》','《左传》'],ans:1,why:'《史记》是我国第一部纪传体通史，作者司马迁。'}
 ];
 const ESSAY_BANK=[
-  {q:'“心有所信，方能行远。”',t:'适用主题：理想信念、青年担当、坚守初心'},
-  {q:'“征途漫漫，惟有奋斗。”',t:'适用主题：奋斗拼搏、长期坚持、攻坚克难'},
-  {q:'“民之所忧，我必念之；民之所盼，我必行之。”',t:'适用主题：为民服务、基层治理、民生福祉'},
-  {q:'“时代呼唤担当，民族振兴是青年的责任。”',t:'适用主题：青年使命、时代责任、家国情怀'},
-  {q:'“不谋全局者，不足谋一域。”',t:'适用主题：大局意识、系统思维、统筹规划'},
-  {q:'“功成不必在我，功成必定有我。”',t:'适用主题：奉献精神、久久为功、政绩观'},
-  {q:'“路虽远，行则将至；事虽难，做则必成。”',t:'适用主题：实干笃行、坚持不懈、量变到质变'},
-  {q:'“治国凭圭臬，安邦靠准绳。”',t:'适用主题：法治建设、制度治理、规则意识'}
+  {q:'“心有所信，方能行远。”',t:'适用主题：理想信念、青年担当、坚守初心',by:'——2020年习近平总书记给复旦大学志愿者服务队回信引用'},
+  {q:'“征途漫漫，惟有奋斗。”',t:'适用主题：奋斗拼搏、长期坚持、攻坚克难',by:'——2021年习近平总书记新年贺词'},
+  {q:'“民之所忧，我必念之；民之所盼，我必行之。”',t:'适用主题：为民服务、基层治理、民生福祉',by:'——2022年习近平总书记新年贺词'},
+  {q:'“时代呼唤担当，民族振兴是青年的责任。”',t:'适用主题：青年使命、时代责任、家国情怀',by:'——2019年纪念五四运动100周年大会讲话'},
+  {q:'“不谋全局者，不足谋一域。”',t:'适用主题：大局意识、系统思维、统筹规划',by:'——清·陈澹然《寤言》'},
+  {q:'“功成不必在我，功成必定有我。”',t:'适用主题：奉献精神、久久为功、政绩观',by:'——2018年习近平总书记在庆祝海南建省办经济特区30周年大会引用'},
+  {q:'“路虽远，行则将至；事虽难，做则必成。”',t:'适用主题：实干笃行、坚持不懈、量变到质变',by:'——化用《荀子·修身》；见于2023年新年贺词'},
+  {q:'“治国凭圭臬，安邦靠准绳。”',t:'适用主题：法治建设、制度治理、规则意识',by:'——化用《管子》法治思想'}
 ];
 const QUOTES=[
   '今天多刷一道题，明天上岸近一步。',
@@ -672,56 +676,62 @@ function pomoResetArc(mod){ const arc=document.getElementById('pomoArc_'+mod); c
 
 /* ===== 申论素材库（每日热点 / 案例库 / 金句库） ===== */
 const HOT_TOPICS=[
-  {t:'新质生产力',d:'以科技创新驱动产业创新，摆脱传统增长路径，形成高科技、高效能、高质量的生产力。',a:'可用于“创新发展”“产业升级”“高质量发展”主题；论证时配“人工智能+”“专精特新”实例。'},
-  {t:'乡村振兴',d:'产业、人才、文化、生态、组织“五大振兴”协同推进，端牢饭碗、留住乡愁。',a:'民生/三农主题高频；可嵌“千万工程”“返乡创业”案例。'},
-  {t:'基层治理现代化',d:'党建引领、网格化管理、共建共治共享，把矛盾化解在源头、服务送到家门口。',a:'适用于“社会治理”“社区服务”“枫桥经验”类话题。'},
-  {t:'人工智能治理',d:'统筹发展与安全，推动AI向善，完善数据保护与伦理规范。',a:'科技类热点；论证“技术双刃剑”“制度护航创新”。'},
-  {t:'文化自信',d:'不忘本来、吸收外来、面向未来，让中华优秀传统文化创造性转化。',a:'文化/价值观主题；配“国潮”“非遗活化”“考古热”。'},
-  {t:'绿色发展·双碳',d:'绿水青山就是金山银山，稳妥推进碳达峰碳中和，发展方式绿色低碳转型。',a:'生态主题；配“塞罕坝”“新能源”案例。'},
-  {t:'民生保障',d:'在高质量发展中增进民生福祉，兜牢教育、医疗、养老、住房底线。',a:'民生类万能角度；体现“以人民为中心”。'},
-  {t:'高水平科技自立自强',d:'把科技的命脉牢牢掌握在自己手中，突破“卡脖子”关键核心技术。',a:'创新主题；配“北斗”“神舟”“芯片攻坚”。'}
+  {t:'新质生产力',d:'以科技创新驱动产业创新，摆脱传统增长路径，形成高科技、高效能、高质量的生产力。',a:'可用于“创新发展”“产业升级”“高质量发展”主题；论证时配“人工智能+”“专精特新”实例。',src:'来源：2023年9月习近平总书记在黑龙江考察调研时首次提出；2024年、2025年连续写入政府工作报告'},
+  {t:'乡村振兴',d:'产业、人才、文化、生态、组织“五大振兴”协同推进，端牢饭碗、留住乡愁。',a:'民生/三农主题高频；可嵌“千万工程”“返乡创业”案例。',src:'来源：2017年党的十九大首次提出“实施乡村振兴战略”；2018年中央一号文件《中共中央 国务院关于实施乡村振兴战略的意见》全面部署'},
+  {t:'基层治理现代化',d:'党建引领、网格化管理、共建共治共享，把矛盾化解在源头、服务送到家门口。',a:'适用于“社会治理”“社区服务”“枫桥经验”类话题。',src:'来源：党的十九大提出打造“共建共治共享”社会治理格局；“枫桥经验”源于1963年浙江诸暨，习近平总书记多次作出重要指示'},
+  {t:'人工智能治理',d:'统筹发展与安全，推动AI向善，完善数据保护与伦理规范。',a:'科技类热点；论证“技术双刃剑”“制度护航创新”。',src:'来源：2024年《政府工作报告》提出“人工智能+”行动；《生成式人工智能服务管理暂行办法》2023年8月15日施行'},
+  {t:'文化自信',d:'不忘本来、吸收外来、面向未来，让中华优秀传统文化创造性转化。',a:'文化/价值观主题；配“国潮”“非遗活化”“考古热”。',src:'来源：2017年党的十九大报告强调“坚定文化自信”；见习近平总书记《在哲学社会科学工作座谈会上的讲话》（2016年5月）'},
+  {t:'绿色发展·双碳',d:'绿水青山就是金山银山，稳妥推进碳达峰碳中和，发展方式绿色低碳转型。',a:'生态主题；配“塞罕坝”“新能源”案例。',src:'来源：2020年9月习近平总书记在第七十五届联合国大会一般性辩论宣布“2030年前碳达峰、2060年前碳中和”；“绿水青山就是金山银山”2005年8月浙江安吉提出'},
+  {t:'民生保障',d:'在高质量发展中增进民生福祉，兜牢教育、医疗、养老、住房底线。',a:'民生类万能角度；体现“以人民为中心”。',src:'来源：《中华人民共和国国民经济和社会发展第十四个五年规划和2035年远景目标纲要》强调“扎实推动共同富裕”；2021年中央财经委员会第十次会议部署'},
+  {t:'高水平科技自立自强',d:'把科技的命脉牢牢掌握在自己手中，突破“卡脖子”关键核心技术。',a:'创新主题；配“北斗”“神舟”“芯片攻坚”。',src:'来源：2021年习近平总书记在中国科学院第二十次院士大会、中国工程院第十五次院士大会讲话强调“把科技的命脉牢牢掌握在自己手中”'}
 ];
 const CASES=[
-  {n:'黄文秀',f:'脱贫攻坚',s:'北师大硕士毕业后返乡担任驻村第一书记，带领群众脱贫致富，因公殉职，年仅30岁。',u:'青年担当、乡村振兴、初心使命。'},
-  {n:'张桂梅',f:'教育扶贫',s:'创办全国第一所免费女子高中，帮助近2000名山区女孩考入大学。',u:'教育公平、无私奉献、改变命运。'},
-  {n:'塞罕坝林场',f:'生态治理',s:'三代人接力，将荒漠变成百万亩林海，铸就“绿色长城”。',u:'绿色发展、久久为功、生态文明。'},
-  {n:'北斗团队',f:'科技自立',s:'26年自主攻关，建成全球卫星导航系统，服务亿万用户。',u:'科技自立自强、突破卡脖子。'},
-  {n:'“千万工程”',f:'乡村振兴',s:'浙江20年持续推进，从人居环境整治到乡村全面振兴，获联合国地球卫士奖。',u:'乡村振兴、久久为功、因地制宜。'},
-  {n:'大禹治水',f:'古代治理',s:'改“堵”为“疏”，因势利导、系统治理，三过家门而不入。',u:'系统思维、实干担当（古例亦可用）。'},
-  {n:'焦裕禄',f:'公仆精神',s:'带领兰考人民战风沙、治盐碱，肝病剧痛仍坚守岗位。',u:'为民服务、公仆情怀、迎难而上。'},
-  {n:'中国航天人',f:'开拓创新',s:'神舟、嫦娥、天问、天宫接续突破，托举航天强国梦。',u:'创新、接力奋斗、家国情怀。'}
+  {n:'黄文秀',f:'脱贫攻坚',s:'北京师范大学硕士毕业后返乡担任驻村第一书记，带领群众脱贫致富，因公殉职，年仅30岁。',u:'青年担当、乡村振兴、初心使命。',src:'来源：2019年获“时代楷模”“全国脱贫攻坚楷模”称号；习近平总书记对黄文秀同志先进事迹作出重要指示'},
+  {n:'张桂梅',f:'教育扶贫',s:'创办全国第一所免费女子高中，帮助近2000名山区女孩考入大学。',u:'教育公平、无私奉献、改变命运。',src:'来源：2021年获“七一勋章”；习近平总书记为其颁授勋章；中宣部授予“时代楷模”'},
+  {n:'塞罕坝林场',f:'生态治理',s:'三代人接力，将荒漠变成百万亩林海，铸就“绿色长城”。',u:'绿色发展、久久为功、生态文明。',src:'来源：1962年建场；2017年获联合国“地球卫士奖”；习近平总书记作出重要指示'},
+  {n:'北斗团队',f:'科技自立',s:'26年自主攻关，建成全球卫星导航系统，服务亿万用户。',u:'科技自立自强、突破卡脖子。',src:'来源：2020年7月北斗三号全球卫星导航系统正式开通，习近平总书记出席开通仪式并宣布'},
+  {n:'“千万工程”',f:'乡村振兴',s:'浙江20年持续推进，从人居环境整治到乡村全面振兴，获联合国地球卫士奖。',u:'乡村振兴、久久为功、因地制宜。',src:'来源：2003年习近平总书记在浙江工作期间亲自谋划启动；2024年中央一号文件强调推广“千万工程”经验'},
+  {n:'大禹治水',f:'古代治理',s:'改“堵”为“疏”，因势利导、系统治理，三过家门而不入。',u:'系统思维、实干担当（古例亦可用）。',src:'来源：《史记·夏本纪》等典籍所载上古治水传说，今多用于“系统治理”论证'},
+  {n:'焦裕禄',f:'公仆精神',s:'带领兰考人民战风沙、治盐碱，肝病剧痛仍坚守岗位。',u:'为民服务、公仆情怀、迎难而上。',src:'来源：1962年任河南兰考县委书记；习近平总书记称其为“县委书记的榜样”，多次讲述其事迹'},
+  {n:'中国航天人',f:'开拓创新',s:'神舟、嫦娥、天问、天宫接续突破，托举航天强国梦。',u:'创新、接力奋斗、家国情怀。',src:'来源：1992年载人航天工程立项（“921工程”）；神舟2003年首飞，嫦娥、天问、天宫系列持续突破'}
 ];
 const QUOTE_BANK=[
-  {q:'心有所信，方能行远。',th:'理想信念'},
-  {q:'征途漫漫，惟有奋斗。',th:'奋斗拼搏'},
-  {q:'民之所忧，我必念之；民之所盼，我必行之。',th:'为民服务'},
-  {q:'时代呼唤担当，民族振兴是青年的责任。',th:'青年使命'},
-  {q:'不谋全局者，不足谋一域。',th:'系统思维'},
-  {q:'功成不必在我，功成必定有我。',th:'奉献精神'},
-  {q:'路虽远，行则将至；事虽难，做则必成。',th:'实干笃行'},
-  {q:'治国凭圭臬，安邦靠准绳。',th:'法治建设'},
-  {q:'治国有常，而利民为本。',th:'民生为本'},
-  {q:'仓廪实而知礼节，衣食足而知荣辱。',th:'物质基础'},
-  {q:'苟日新，日日新，又日新。',th:'改革创新'},
-  {q:'绿水青山就是金山银山。',th:'生态发展'},
-  {q:'纸上得来终觉浅，绝知此事要躬行。',th:'实践实干'},
-  {q:'利民之事，丝发必兴；厉民之事，毫末必去。',th:'为民服务'},
-  {q:'惟改革者进，惟创新者强，惟改革创新者胜。',th:'改革创新'},
-  {q:'大厦之成，非一木之材也；大海之阔，非一流之归也。',th:'系统思维'},
-  {q:'我将无我，不负人民。',th:'公仆情怀'},
-  {q:'千磨万击还坚劲，任尔东西南北风。',th:'坚韧担当'}
+  {q:'心有所信，方能行远。',th:'理想信念',by:'——2020年6月习近平总书记在给复旦大学《共产党宣言》展示馆党员志愿服务队全体队员回信中引用'},
+  {q:'征途漫漫，惟有奋斗。',th:'奋斗拼搏',by:'——2021年习近平总书记新年贺词'},
+  {q:'民之所忧，我必念之；民之所盼，我必行之。',th:'为民服务',by:'——2022年习近平总书记新年贺词'},
+  {q:'时代呼唤担当，民族振兴是青年的责任。',th:'青年使命',by:'——2019年习近平总书记在纪念五四运动100周年大会上的讲话'},
+  {q:'不谋全局者，不足谋一域。',th:'系统思维',by:'——清·陈澹然《寤言·迁都建藩议》'},
+  {q:'功成不必在我，功成必定有我。',th:'奉献精神',by:'——2018年习近平总书记在庆祝海南建省办经济特区30周年大会上引用'},
+  {q:'路虽远，行则将至；事虽难，做则必成。',th:'实干笃行',by:'——化用《荀子·修身》“路虽弥，不行不至”；亦见于习近平总书记2023年新年贺词'},
+  {q:'治国凭圭臬，安邦靠准绳。',th:'法治建设',by:'——化用《管子》法治思想（“自身而名，由法而显”）'},
+  {q:'治国有常，而利民为本。',th:'民生为本',by:'——《淮南子·氾论训》'},
+  {q:'仓廪实而知礼节，衣食足而知荣辱。',th:'物质基础',by:'——《管子·牧民》'},
+  {q:'苟日新，日日新，又日新。',th:'改革创新',by:'——《礼记·大学》（商汤盘铭）'},
+  {q:'绿水青山就是金山银山。',th:'生态发展',by:'——2005年8月习近平总书记在浙江安吉余村考察时提出（载于《之江新语》）'},
+  {q:'纸上得来终觉浅，绝知此事要躬行。',th:'实践实干',by:'——南宋·陆游《冬夜读书示子聿》'},
+  {q:'利民之事，丝发必兴；厉民之事，毫末必去。',th:'为民服务',by:'——清·万斯大《周官辨非》（亦见《格言联璧》）'},
+  {q:'惟改革者进，惟创新者强，惟改革创新者胜。',th:'改革创新',by:'——2013年习近平总书记在欧美同学会成立100周年庆祝大会上的讲话引用'},
+  {q:'大厦之成，非一木之材也；大海之阔，非一流之归也。',th:'系统思维',by:'——明·冯梦龙《东周列国志》'},
+  {q:'我将无我，不负人民。',th:'公仆情怀',by:'——2019年3月习近平总书记在会见意大利众议长菲科时答问'},
+  {q:'千磨万击还坚劲，任尔东西南北风。',th:'坚韧担当',by:'——清·郑燮《竹石》'}
+];
+const FANWEN=[
+  {t:'以“千万工程”经验绘就乡村全面振兴新画卷',th:'乡村振兴',body:'“千万工程”实施二十余年来，从人居环境整治的“小切口”，催生了乡村全面振兴的“大蝶变”，成为习近平新时代中国特色社会主义思想在“三农”领域的生动实践。写好乡村振兴这篇大文章，当以产业为基、以人才为要、以文化为魂。产业振兴是根本。要立足资源禀赋，做好“土特产”文章，推动一二三产融合，让农民在家门口鼓起“钱袋子”。人才振兴是关键。既要引得回“归巢雁”，完善返乡创业政策；也要育得好“土专家”，壮大本土人才队伍。文化振兴是抓手。保护古树名村，活化非遗民俗，让乡愁有寄托、乡风更文明。新征程上，锚定“农村基本具备现代生活条件”目标，一张蓝图绘到底、一茬接着一茬干，广袤乡村必将铺展宜居宜业的和美画卷。',src:'结构参考《人民日报》“人民时评”栏目写法；可结合“千万工程”、浙江“村晚”、返乡创业等权威案例灵活套用'},
+  {t:'以新质生产力撬动高质量发展新动能',th:'新质生产力',body:'高质量发展是全面建设社会主义现代化国家的首要任务，而新质生产力正是其核心驱动力。新质生产力，特点在“新”，关键在“质”，本质是创新起主导作用、符合高质量发展要求的生产力。培育新质生产力，要牵住科技创新“牛鼻子”。瞄准人工智能、量子信息、生物医药等前沿领域，打好关键核心技术攻坚战，把发展主动权牢牢握在自己手中。要写好产业升级“大文章”。以“人工智能+”赋能千行百业，推动传统产业高端化、智能化、绿色化转型，让老树发新枝、新树扎深根。要激活人才这一“第一资源”。完善人才培养、引进、使用机制，让各类人才的创新活力竞相迸发。向“新”而行、以“质”取胜，中国经济必将在新旧动能转换中行稳致远。',src:'结构参考《人民日报》“人民论坛”栏目写法；可结合“人工智能+”、专精特新“小巨人”、北斗/神舟等案例'},
+  {t:'守护绿水青山 厚植高质量发展底色',th:'绿色发展',body:'“绿水青山就是金山银山”，深刻揭示了生态保护与经济发展的辩证统一。守护绿水青山，既是民心所向，更是发展所需。守护之本在系统治理。像保护眼睛一样保护生态环境，统筹山水林田湖草沙一体化保护和修复，让“绿色家底”更厚实。转化之道在生态惠民。健全生态产品价值实现机制，发展林下经济、生态旅游、碳汇交易，把“好风景”变成“好钱景”。长效之基在制度护航。落实河长制、林长制，完善生态补偿和生态环境分区管控，用最严格制度守住自然生态安全边界。人不负青山，青山定不负人。当绿色成为高质量发展的鲜明底色，美丽中国必将铺展人与自然和谐共生的壮美画卷。',src:'结构参考《人民日报》“人民时评”栏目写法；可结合塞罕坝、新安江生态补偿、新能源产业等案例'}
 ];
 function viewMaterials(){
   const d=todayKey();
   if(!state.essayQuotes[d]) state.essayQuotes[d]=ESSAY_BANK[dayIndex()%ESSAY_BANK.length];
   const eq=state.essayQuotes[d];
   let h=`<div class="card"><h2>📚 申论素材库</h2>
-    <div class="essay-quote"><div class="q">"${eq.q}"</div><div class="t">🎯 ${eq.t}</div></div>
+    <div class="essay-quote"><div class="q">"${eq.q}"</div><div class="t">🎯 ${eq.t}</div>${eq.by?`<div class="qsrc">${eq.by}</div>`:''}</div>
     <button class="btn ghost" onclick="nextQuote()">换一句金句 ↻</button>
     <div class="tab" style="margin-top:14px;">
       <div class="active" id="matTab0" onclick="switchMatTab(0)">每日热点</div>
       <div id="matTab1" onclick="switchMatTab(1)">案例库</div>
       <div id="matTab2" onclick="switchMatTab(2)">金句库</div>
+      <div id="matTab3" onclick="switchMatTab(3)">范文库</div>
     </div>
     <div id="matContent"></div></div>`;
   setTimeout(()=>switchMatTab(0),30);
@@ -732,18 +742,21 @@ function switchMatTab(t){
   document.getElementById('matTab0').classList.toggle('active',t===0);
   document.getElementById('matTab1').classList.toggle('active',t===1);
   document.getElementById('matTab2').classList.toggle('active',t===2);
+  document.getElementById('matTab3').classList.toggle('active',t===3);
   const c=document.getElementById('matContent');
   if(t===0){
     const ht=HOT_TOPICS[dayIndex()%HOT_TOPICS.length];
-    c.innerHTML=`<div class="mat-card"><div class="mc-title">🔥 今日热点 · ${ht.t}</div><div class="mc-body">${ht.d}</div><div class="mc-use">📌 可用角度：${ht.a}</div></div>
+    c.innerHTML=`<div class="mat-card"><div class="mc-title">🔥 今日热点 · ${ht.t}</div><div class="mc-body">${ht.d}</div><div class="mc-use">📌 可用角度：${ht.a}</div><div class="mc-src">🔗 来源：${ht.src}</div></div>
       <button class="btn ghost" style="margin-top:8px;" onclick="rotateHot()">换一条热点 ↻</button>
-      <div style="font-size:12px;color:#bbb;margin-top:10px;">热点库共 ${HOT_TOPICS.length} 条，覆盖新质生产力、乡村振兴、基层治理、AI治理、文化自信、双碳、民生、科技自立等常考主题。</div>`;
+      <div style="font-size:12px;color:#bbb;margin-top:10px;">热点库共 ${HOT_TOPICS.length} 条，覆盖新质生产力、乡村振兴、基层治理、AI治理、文化自信、双碳、民生、科技自立等常考主题。每条均标注权威来源，引用请核对原文。</div>`;
   }else if(t===1){
-    c.innerHTML=CASES.map(cs=>`<div class="mat-card"><div class="mc-title">🏆 ${cs.n}</div><div class="mc-tag">${cs.f}</div><div class="mc-body">${cs.s}</div><div class="mc-use">✅ 适用：${cs.u}</div></div>`).join('');
+    c.innerHTML=CASES.map(cs=>`<div class="mat-card"><div class="mc-title">🏆 ${cs.n}</div><div class="mc-tag">${cs.f}</div><div class="mc-body">${cs.s}</div><div class="mc-use">✅ 适用：${cs.u}</div><div class="mc-src">🔗 出处：${cs.src}</div></div>`).join('');
+  }else if(t===3){
+    c.innerHTML=FANWEN.map((f,i)=>`<div class="mat-card"><div class="mc-title">📝 ${f.t}</div><div class="mc-tag">${f.th}</div><div class="fw-body">${f.body}</div><div class="mc-src">🔗 来源说明：${f.src}</div><button class="btn ghost mini" style="margin-top:6px;" onclick="copyText2(${i})">复制范文</button></div>`).join('');
   }else{
     const themes={};
-    QUOTE_BANK.forEach((q,gi)=>{ (themes[q.th]=themes[q.th]||[]).push({q:q.q,gi:gi}); });
-    c.innerHTML=Object.entries(themes).map(([th,arr])=>`<div style="margin:10px 0;"><div class="mc-tag" style="display:inline-block;margin-bottom:6px;">${th}</div>${arr.map(o=>`<div class="quote-row"><span>"${o.q}"</span><button class="btn ghost mini" onclick="copyText(${o.gi})">复制</button></div>`).join('')}</div>`).join('');
+    QUOTE_BANK.forEach((q,gi)=>{ (themes[q.th]=themes[q.th]||[]).push({q:q.q,by:q.by,gi:gi}); });
+    c.innerHTML=Object.entries(themes).map(([th,arr])=>`<div style="margin:10px 0;"><div class="mc-tag" style="display:inline-block;margin-bottom:6px;">${th}</div>${arr.map(o=>`<div class="quote-row"><span>"${o.q}"${o.by?`<span class="qby">${o.by}</span>`:''}</span><button class="btn ghost mini" onclick="copyText(${o.gi})">复制</button></div>`).join('')}</div>`).join('');
   }
 }
 function rotateHot(){
@@ -751,8 +764,9 @@ function rotateHot(){
   const ht=HOT_TOPICS[idx];
   const box=document.getElementById('matContent');
   if(!box)return;
-  box.innerHTML=`<div class="mat-card"><div class="mc-title">🔥 热点 · ${ht.t}</div><div class="mc-body">${ht.d}</div><div class="mc-use">📌 可用角度：${ht.a}</div></div><button class="btn ghost" style="margin-top:8px;" onclick="rotateHot()">换一条热点 ↻</button>`;
+  box.innerHTML=`<div class="mat-card"><div class="mc-title">🔥 热点 · ${ht.t}</div><div class="mc-body">${ht.d}</div><div class="mc-use">📌 可用角度：${ht.a}</div><div class="mc-src">🔗 来源：${ht.src}</div></div><button class="btn ghost" style="margin-top:8px;" onclick="rotateHot()">换一条热点 ↻</button>`;
 }
+function copyText2(i){ try{ navigator.clipboard.writeText(FANWEN[i].body); toast('已复制范文 📋'); }catch(e){ toast('复制失败，请手动长按选择'); } }
 function copyText(i){ try{ navigator.clipboard.writeText(QUOTE_BANK[i].q); toast('已复制金句 📋'); }catch(e){ toast('复制失败，请手动长按选择'); } }
 
 /* ===== 打卡日历 ===== */

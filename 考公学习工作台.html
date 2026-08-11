@@ -258,6 +258,13 @@ body{ overscroll-behavior:none; -webkit-user-select:none; user-select:none; }
 .qfb{ font-size:13px; font-weight:bold; margin-top:10px; }
 .qfb.ok{ color:#1a7a3a; } .qfb.err{ color:#E23A5A; }
 .mcq-why{ font-size:12.5px; color:#666; background:#FAF6FB; border-radius:10px; padding:8px 10px; margin-top:6px; line-height:1.6; }
+/* ===== 打印 / 导出 PDF 复习清单 ===== */
+@media print{
+  nav.sidebar, main.main, .toast, .install-tip{ display:none !important; }
+  #printArea{ display:block !important; }
+  @page{ margin:14mm; }
+}
+#printArea{ display:none; }
 </style>
 </head>
 <body>
@@ -286,6 +293,8 @@ body{ overscroll-behavior:none; -webkit-user-select:none; user-select:none; }
   <span>📲 想全屏当 App 用？点 Safari 底部「<b>分享</b>」→「<b>添加到主屏幕</b>」即可！</span>
   <span class="x" id="installTipX">×</span>
 </div>
+
+<div id="printArea"></div>
 
 <script>
 /* ============ localStorage 容错 ============ */
@@ -355,6 +364,50 @@ function exportData(){
   }catch(e){ alert('导出失败：'+(e&&e.message||e)); }
 }
 function importData(){ const inp=document.getElementById('importFile'); if(inp) inp.click(); }
+/* ===== 导出复习清单（按模块打印 / 存 PDF） ===== */
+function _groupBy(arr,key){ const g={}; arr.forEach(x=>{ const k=x[key]||'未分类'; (g[k]=g[k]||[]).push(x); }); return g; }
+function _pointItemHTML(p){
+  const prog=reviewProgress(p);
+  const status=p.mastered?'<span style="color:#2a7;font-weight:700;">✅ 已掌握</span>':(isDue(p)?'<span style="color:#d33;font-weight:700;">🔁 待复习</span>':'<span style="color:#888;">⏳ 复习中 '+prog+'/6</span>');
+  const nr=p.mastered?'—':nextReviewDate(p);
+  return `<li style="margin-bottom:10px;"><div style="font-weight:600;">${escapeHtml(p.text)}</div><div style="font-size:12px;color:#555;margin-top:2px;">${status} · 下次复习 ${nr} · 已复习 ${prog} 轮</div></li>`;
+}
+function _bankItemHTML(b){
+  const letters=['A','B','C','D','E'];
+  const ans=letters[b.ans]||b.ans;
+  const opts=(b.opts||[]).map((o,i)=>`${letters[i]}. ${escapeHtml(o)}`).join('　');
+  const status=b.mastered?'<span style="color:#2a7;font-weight:700;">✅ 已掌握</span>':'<span style="color:#d33;font-weight:700;">🔁 待复习</span>';
+  return `<li style="margin-bottom:12px;"><div style="font-weight:600;">${escapeHtml(b.q)}</div><div style="font-size:12px;color:#444;margin-top:3px;">${opts}</div><div style="font-size:12px;margin-top:3px;color:#1a5fb4;">【答案】${ans}</div><div style="font-size:12px;color:#666;margin-top:2px;">【解析】${escapeHtml(b.why||'（暂无）')}　${status}　对${b.right||0} 错${b.wrong||0}</div></li>`;
+}
+function _buildPrintHTML(title,statLine,groups,itemFn){
+  const mods=Object.keys(groups);
+  const body=mods.length?mods.map(m=>`<h2 style="font-size:15px;margin:14px 0 6px;color:#c41e6a;">📂 ${escapeHtml(m)}（${groups[m].length}）</h2><ol style="margin:0 0 0 18px;padding:0;">${groups[m].map(it=>itemFn(it)).join('')}</ol>`).join(''):'<div style="color:#888;">（暂无内容）</div>';
+  return `<div style="font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;color:#1a1a1a;line-height:1.6;padding:2px;">
+    <h1 style="font-size:22px;margin:0 0 4px;border-bottom:3px solid #e84a8a;padding-bottom:8px;">${escapeHtml(title)}</h1>
+    <div style="font-size:12px;color:#666;margin-bottom:10px;">${escapeHtml(statLine)}</div>
+    ${body}
+    <div style="font-size:11px;color:#999;margin-top:18px;border-top:1px dashed #ccc;padding-top:8px;">由「考公学习工作台」生成 · 按模块归类，可直接打印或存为 PDF 复习</div>
+  </div>`;
+}
+function exportReview(kind,modFilter){
+  const pa=document.getElementById('printArea'); if(!pa){ toast('导出区未就绪'); return; }
+  const now=todayKey();
+  if(kind==='points'){
+    let list=(state.points||[]).slice();
+    if(modFilter && modFilter!=='全部') list=list.filter(p=>p.mod===modFilter);
+    const groups=_groupBy(list,'mod');
+    const stat=`共 ${list.length} 个考点 · 已掌握 ${list.filter(p=>p.mastered).length} · 待复习 ${list.filter(p=>!p.mastered).length} · 导出 ${now}`;
+    pa.innerHTML=_buildPrintHTML('易错考点 · 复习清单',stat,groups,_pointItemHTML);
+  }else{
+    let list=(state.bank||[]).slice();
+    if(modFilter && modFilter!=='全部') list=list.filter(b=>b.mod===modFilter);
+    const groups=_groupBy(list,'mod');
+    const stat=`共 ${list.length} 道题 · 已掌握 ${list.filter(b=>b.mastered).length} · 待复习 ${list.filter(b=>!b.mastered).length} · 导出 ${now}`;
+    pa.innerHTML=_buildPrintHTML('我的题库 · 题目清单',stat,groups,_bankItemHTML);
+  }
+  toast('正在生成 PDF，请在打印面板选「存为 PDF」📄');
+  setTimeout(()=>{ try{ window.print(); }catch(e){ toast('导出失败：'+(e&&e.message||e)); } }, 80);
+}
 function onImportFile(e){
   const file=e.target.files&&e.target.files[0]; if(!file)return;
   const reader=new FileReader();
@@ -716,9 +769,14 @@ const QUOTE_BANK=[
   {q:'千磨万击还坚劲，任尔东西南北风。',th:'坚韧担当',by:'——清·郑燮《竹石》'}
 ];
 const FANWEN=[
-  {t:'以“千万工程”经验绘就乡村全面振兴新画卷',th:'乡村振兴',body:'“千万工程”实施二十余年来，从人居环境整治的“小切口”，催生了乡村全面振兴的“大蝶变”，成为习近平新时代中国特色社会主义思想在“三农”领域的生动实践。写好乡村振兴这篇大文章，当以产业为基、以人才为要、以文化为魂。产业振兴是根本。要立足资源禀赋，做好“土特产”文章，推动一二三产融合，让农民在家门口鼓起“钱袋子”。人才振兴是关键。既要引得回“归巢雁”，完善返乡创业政策；也要育得好“土专家”，壮大本土人才队伍。文化振兴是抓手。保护古树名村，活化非遗民俗，让乡愁有寄托、乡风更文明。新征程上，锚定“农村基本具备现代生活条件”目标，一张蓝图绘到底、一茬接着一茬干，广袤乡村必将铺展宜居宜业的和美画卷。',src:'结构参考《人民日报》“人民时评”栏目写法；可结合“千万工程”、浙江“村晚”、返乡创业等权威案例灵活套用'},
-  {t:'以新质生产力撬动高质量发展新动能',th:'新质生产力',body:'高质量发展是全面建设社会主义现代化国家的首要任务，而新质生产力正是其核心驱动力。新质生产力，特点在“新”，关键在“质”，本质是创新起主导作用、符合高质量发展要求的生产力。培育新质生产力，要牵住科技创新“牛鼻子”。瞄准人工智能、量子信息、生物医药等前沿领域，打好关键核心技术攻坚战，把发展主动权牢牢握在自己手中。要写好产业升级“大文章”。以“人工智能+”赋能千行百业，推动传统产业高端化、智能化、绿色化转型，让老树发新枝、新树扎深根。要激活人才这一“第一资源”。完善人才培养、引进、使用机制，让各类人才的创新活力竞相迸发。向“新”而行、以“质”取胜，中国经济必将在新旧动能转换中行稳致远。',src:'结构参考《人民日报》“人民论坛”栏目写法；可结合“人工智能+”、专精特新“小巨人”、北斗/神舟等案例'},
-  {t:'守护绿水青山 厚植高质量发展底色',th:'绿色发展',body:'“绿水青山就是金山银山”，深刻揭示了生态保护与经济发展的辩证统一。守护绿水青山，既是民心所向，更是发展所需。守护之本在系统治理。像保护眼睛一样保护生态环境，统筹山水林田湖草沙一体化保护和修复，让“绿色家底”更厚实。转化之道在生态惠民。健全生态产品价值实现机制，发展林下经济、生态旅游、碳汇交易，把“好风景”变成“好钱景”。长效之基在制度护航。落实河长制、林长制，完善生态补偿和生态环境分区管控，用最严格制度守住自然生态安全边界。人不负青山，青山定不负人。当绿色成为高质量发展的鲜明底色，美丽中国必将铺展人与自然和谐共生的壮美画卷。',src:'结构参考《人民日报》“人民时评”栏目写法；可结合塞罕坝、新安江生态补偿、新能源产业等案例'}
+  {t:'以“千万工程”经验绘就乡村全面振兴新画卷',th:'乡村振兴',body:'“千万工程”实施二十余年来，从人居环境整治的“小切口”，催生了乡村全面振兴的“大蝶变”，成为习近平新时代中国特色社会主义思想在“三农”领域的生动实践。写好乡村振兴这篇大文章，当以产业为基、以人才为要、以文化为魂。产业振兴是根本。要立足资源禀赋，做好“土特产”文章，推动一二三产融合，让农民在家门口鼓起“钱袋子”。人才振兴是关键。既要引得回“归巢雁”，完善返乡创业政策；也要育得好“土专家”，壮大本土人才队伍。文化振兴是抓手。保护古树名村，活化非遗民俗，让乡愁有寄托、乡风更文明。新征程上，锚定“农村基本具备现代生活条件”目标，一张蓝图绘到底、一茬接着一茬干，广袤乡村必将铺展宜居宜业的和美画卷。',src:'权威论述：中共中央、国务院《乡村全面振兴规划（2024—2027年）》；“千万工程”入选联合国“最佳减贫案例”。可结合浙江“村晚”、返乡创业、土特产加工等案例'},
+  {t:'以新质生产力撬动高质量发展新动能',th:'新质生产力',body:'高质量发展是全面建设社会主义现代化国家的首要任务，而新质生产力正是其核心驱动力。新质生产力，特点在“新”，关键在“质”，本质是创新起主导作用、符合高质量发展要求的生产力。培育新质生产力，要牵住科技创新“牛鼻子”。瞄准人工智能、量子信息、生物医药等前沿领域，打好关键核心技术攻坚战，把发展主动权牢牢握在自己手中。要写好产业升级“大文章”。以“人工智能+”赋能千行百业，推动传统产业高端化、智能化、绿色化转型，让老树发新枝、新树扎深根。要激活人才这一“第一资源”。完善人才培养、引进、使用机制，让各类人才的创新活力竞相迸发。向“新”而行、以“质”取胜，中国经济必将在新旧动能转换中行稳致远。',src:'权威论述：习近平总书记在中共中央政治局第十一次集体学习时强调“发展新质生产力是推动高质量发展的内在要求和重要着力点”；可结合“人工智能+”、专精特新“小巨人”、北斗/神舟等案例'},
+  {t:'守护绿水青山 厚植高质量发展底色',th:'绿色发展',body:'“绿水青山就是金山银山”，深刻揭示了生态保护与经济发展的辩证统一。守护绿水青山，既是民心所向，更是发展所需。守护之本在系统治理。像保护眼睛一样保护生态环境，统筹山水林田湖草沙一体化保护和修复，让“绿色家底”更厚实。转化之道在生态惠民。健全生态产品价值实现机制，发展林下经济、生态旅游、碳汇交易，把“好风景”变成“好钱景”。长效之基在制度护航。落实河长制、林长制，完善生态补偿和生态环境分区管控，用最严格制度守住自然生态安全边界。人不负青山，青山定不负人。当绿色成为高质量发展的鲜明底色，美丽中国必将铺展人与自然和谐共生的壮美画卷。',src:'权威论述：习近平生态文明思想；“绿水青山就是金山银山”理念写入党章。可结合塞罕坝林场、新安江生态补偿、新能源产业等案例'},
+  {t:'坚持和发展新时代“枫桥经验” 提升基层治理效能',th:'基层治理',body:'基层强则国家强，基层安则天下安。新时代“枫桥经验”从“一镇之计”上升为推进国家治理现代化的“一国之策”，彰显了“依靠群众、就地化解”的治理智慧。写好基层治理这篇大文章，要坚持党建引领。把基层党组织建设成坚强战斗堡垒，健全“网格化”管理，让群众的事有人管、有人办。要践行群众路线。畅通诉求表达渠道，推动“小事不出村、大事不出镇、矛盾不上交”，把问题解决在萌芽状态。要善用数字赋能。以“城市大脑”“数字乡村”提升治理精度，让数据多跑路、群众少跑腿。治理的“最后一公里”，正是服务群众的“最美一公里”。',src:'权威论述：习近平同志指出“各级党委和政府要充分认识‘枫桥经验’的重大意义，发扬优良作风，适应时代要求，创新群众工作方法，善于运用法治思维和法治方式解决涉及群众切身利益的矛盾和问题”。适用“基层治理”“矛盾化解”“信访工作”主题'},
+  {t:'在高质量发展中书写民生答卷',th:'民生保障',body:'“为民造福是立党为公、执政为民的本质要求。”发展的温度，归根到底要看民生厚度。增进民生福祉，要在“急难愁盼”上用力。聚焦就业、教育、医疗、养老、住房等群众最关心的事，把惠民生的事办实、暖民心的事办细。要在“公平正义”上用功。推动基本公共服务均等化，织密社会保障网，让发展成果更多更公平惠及全体人民。要在“长效机制”上用心。健全为民办实事机制，把好事实事做到群众心坎上，不搞“形象工程”。江山就是人民，人民就是江山。把民生答卷写进群众笑脸里，才是高质量发展的真正注脚。',src:'权威论述：党的二十大报告“增进民生福祉，提高人民生活品质”专章。可结合药品集中带量采购、城镇老旧小区改造、“双减”政策等权威案例'},
+  {t:'实现高水平科技自立自强',th:'科技创新',body:'科技兴则民族兴，科技强则国家强。面对新一轮科技革命和产业变革，唯有把科技的命脉牢牢掌握在自己手中，才能赢得发展主动。实现高水平科技自立自强，要打好关键核心技术攻坚战。瞄准人工智能、量子信息、集成电路等前沿领域，集合优势资源协同攻关，破解“卡脖子”难题。要强化企业创新主体地位。支持专精特新“小巨人”企业成长，推动产学研深度融合，让创新链、产业链、资金链、人才链环环相扣。要夯实人才根基。完善育才、引才、用才机制，营造鼓励创新、宽容失败的氛围。抓创新就是抓发展，谋创新就是谋未来。',src:'权威论述：党的二十大报告提出“教育、科技、人才是全面建设社会主义现代化国家的基础性、战略性支撑”，并强调“科技是第一生产力、人才是第一资源、创新是第一动力”。可结合北斗导航、C919大飞机、国产芯片突破等案例'},
+  {t:'坚定文化自信 铸就中华文化新辉煌',th:'文化自信',body:'“没有高度的文化自信，没有文化的繁荣兴盛，就没有中华民族伟大复兴。”中华文化源远流长、博大精深，是民族复兴的精神支撑。坚定文化自信，要守护好“根”与“魂”。加强文物保护利用和文化遗产保护传承，让敦煌、良渚、非遗等活起来、传下去。要推动创造性转化、创新性发展。以时代精神激活传统文化生命力，让国潮、文创、文博持续“出圈”，讲好中国故事。要建设具有强大凝聚力和引领力的社会主义意识形态。广泛践行社会主义核心价值观，凝聚团结奋斗的精神力量。文化兴则国运兴，唯有薪火相传、守正创新，方能铸就中华文化新辉煌。',src:'权威论述：2023年全国宣传思想文化工作会议正式提出习近平文化思想，明确“七个着力”，强调“着力赓续中华文脉、推动中华优秀传统文化创造性转化和创新性发展”。可结合“何以中国”、非遗年味、文博热等案例'},
+  {t:'在高质量发展中扎实推进共同富裕',th:'共同富裕',body:'共同富裕是社会主义的本质要求，是人民群众的共同期盼。它不是少数人的富裕，更不是“等靠要”的平均主义，而是全体人民通过辛勤劳动、在高质量发展中逐步实现的过程。扎实推动共同富裕，要做大“蛋糕”。坚持以经济建设为中心，推动高质量发展，不断把“蛋糕”做大做好，为分好“蛋糕”奠定坚实物质基础。要分好“蛋糕”。完善初次分配、再分配、第三次分配协调配套的制度，加大税收、社保、转移支付调节力度。要循序渐进。坚持在发展中保障和改善民生，尽力而为、量力而行，让老百姓的腰包更鼓、生活更美。',src:'权威论述：2021年中央财经委员会第十次会议研究扎实推动共同富裕问题，提出“在高质量发展中促进共同富裕”；浙江为全国首个高质量发展建设共同富裕示范区，可结合“扩中提低”改革案例'}
 ];
 function viewMaterials(){
   const d=todayKey();
@@ -739,11 +797,9 @@ function viewMaterials(){
 }
 function nextQuote(){ const d=todayKey(); let i=ESSAY_BANK.indexOf(state.essayQuotes[d]); i=(i+1)%ESSAY_BANK.length; state.essayQuotes[d]=ESSAY_BANK[i]; save(); viewMaterials(); renderView(7); }
 function switchMatTab(t){
-  document.getElementById('matTab0').classList.toggle('active',t===0);
-  document.getElementById('matTab1').classList.toggle('active',t===1);
-  document.getElementById('matTab2').classList.toggle('active',t===2);
-  document.getElementById('matTab3').classList.toggle('active',t===3);
+  for(let k=0;k<4;k++){ const el=document.getElementById('matTab'+k); if(el)el.classList.toggle('active',k===t); }
   const c=document.getElementById('matContent');
+  if(!c) return;
   if(t===0){
     const ht=HOT_TOPICS[dayIndex()%HOT_TOPICS.length];
     c.innerHTML=`<div class="mat-card"><div class="mc-title">🔥 今日热点 · ${ht.t}</div><div class="mc-body">${ht.d}</div><div class="mc-use">📌 可用角度：${ht.a}</div><div class="mc-src">🔗 来源：${ht.src}</div></div>
@@ -858,6 +914,9 @@ function viewPoints(){
       </div>
       <button class="btn ghost" style="margin-top:8px;" onclick="switchImport(1)">➡️ 去批量粘贴</button>
     </div>
+    <div style="display:flex;gap:8px;margin:10px 0;">
+      <button class="btn ghost" style="flex:1" onclick="exportReview('points')">📤 导出复习清单(PDF)</button>
+    </div>
     <h3>📚 全部考点</h3>
     <div id="pointAll"></div></div>`;
   setTimeout(renderPoints,30);
@@ -955,6 +1014,7 @@ function renderBankList(){
   </div>`;
   const mods=['全部'].concat(MODULES.slice(1,8));
   h+=`<div class="row" style="margin:8px 0;"><select id="bankFilt" onchange="bankFiltVal=this.value;renderBankList()" style="flex:1;">${mods.map(m=>`<option value="${m}"${m===bankFiltVal?' selected':''}>${m==='全部'?'全部模块':m}</option>`).join('')}</select></div>`;
+  h+=`<div style="display:flex;gap:8px;margin:4px 0 10px;"><button class="btn ghost" style="flex:1" onclick="exportReview('bank',bankFiltVal)">📤 导出题目清单(PDF)</button></div>`;
   let list=all; if(bankFiltVal!=='全部') list=all.filter(b=>b.mod===bankFiltVal);
   if(!list.length) h+='<div style="font-size:12px;color:#bbb;margin-top:8px;">还没有题目，去「导入」把粉笔题库搬进来吧~</div>';
   else h+=list.slice().reverse().map(b=>`<div class="ptall"><span class="tag">${b.mod}</span>${b.mastered?'<span class="badge-ok">已掌握</span>':(b.reviews&&b.reviews.length?`<span class="badge-due">${Math.min(b.reviews.length,6)}/6轮</span>`:'')}<span class="del" style="float:right;cursor:pointer;color:#E88;font-size:18px;" onclick="delBank('${b.id}')">×</span><div style="margin-top:4px;font-size:13px;line-height:1.6;">${escapeHtml(b.q)}</div><div style="font-size:11px;color:#bbb;margin-top:3px;">对${b.right||0} 错${b.wrong||0}</div></div>`).join('');
@@ -1079,10 +1139,10 @@ function viewStats(){
     <h3>📅 最近7天打卡</h3><div id="statWeek" style="display:flex;gap:6px;flex-wrap:wrap;"></div></div>
     <div class="card ai-card" style="margin-top:12px;"><h2>🤖 AI 智能诊断</h2><div id="aiBox"></div><button class="btn ghost" style="margin-top:10px;" onclick="renderAI()">🔄 重新分析</button></div>`;
   setTimeout(()=>{
-    const sb=document.getElementById('statBars');
+    const sb=document.getElementById('statBars'); if(!sb)return;
     const max=Math.max(1,...Object.values(totals));
     sb.innerHTML=Object.entries(totals).sort((a,b)=>b[1]-a[1]).map(([m,v])=>`<div style="margin:8px 0;"><div style="font-size:12px;margin-bottom:3px;">${m}：<b>${v}</b> 分</div><div class="bar-bg"><div class="bar-fill" style="width:${v/max*100}%"></div></div></div>`).join('')||'<div style="font-size:12px;color:#bbb;">暂无专注记录，去模块里用番茄钟吧~</div>';
-    const sw=document.getElementById('statWeek');
+    const sw=document.getElementById('statWeek'); if(!sw)return;
     const now=new Date();
     let week='';
     for(let i=6;i>=0;i--){ const d=new Date(now); d.setDate(d.getDate()-i); const k=d.toISOString().slice(0,10); week+=`<div style="background:${state.checkin[k]?'var(--pink)':'#eee'};color:${state.checkin[k]?'#fff':'#999'};border-radius:10px;padding:8px 6px;text-align:center;font-size:11px;min-width:42px;">${d.getMonth()+1}/${d.getDate()}<br>${state.checkin[k]?'✓':'·'}</div>`; }
@@ -1312,6 +1372,7 @@ function rollForwardIfNewDay(){
   }
 }
 function renderHomePlan(){
+  if(!document.getElementById('homeTodayCard'))return;
   rollForwardIfNewDay();
   const {week,day,started}=getWeekDay();
   renderHomeToday(week,day,started);
